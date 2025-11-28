@@ -5,7 +5,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:ToolVip.Views.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:models="clr-namespace:ToolVip.Models"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:models="clr-namespace:ToolVip.Models" xmlns:help="clr-namespace:ToolVip.Helpers"
     Title="DashboardPage"
     d:DataContext="{d:DesignInstance local:DashboardPage,
                                      IsDesignTimeCreatable=False}"
@@ -17,7 +17,58 @@
     ScrollViewer.CanContentScroll="False"
     mc:Ignorable="d">
 
-    <Grid VerticalAlignment="Top">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="80"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Border Grid.Row="0"
+                BorderBrush="LightGray"
+                BorderThickness="0,0,0,2">
+            <StackPanel Orientation="Horizontal">
+                <ui:Button Width="Auto" 
+                           Foreground="Orange"
+                           Icon="{ui:SymbolIcon Symbol=Folder24, FontSize=30, Filled=True}"
+                           CornerRadius="10"
+                           MouseOverBackground="LightBlue"
+                           IsEnabled="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToConverter.Instance}}"
+                           Margin="20,0,20,0"/>
+                <ui:Button Width="Auto" 
+                           Foreground="DarkBlue"
+                           Icon="{ui:SymbolIcon Symbol=Save24, FontSize=30, Filled=True}"
+                           CornerRadius="10"
+                           MouseOverBackground="LightBlue"
+                           IsEnabled="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToConverter.Instance}}"
+                           Margin="20,0,20,0"/>
+                <ui:Button Width="Auto" 
+                           Command="{Binding ViewModel.PlayAsyncCommand}"
+                           Foreground="Green"
+                           CornerRadius="10"
+                           MouseOverBackground="LightBlue"
+                           IsEnabled="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToConverter.Instance}}"
+                           Margin="20,0,20,0">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="{Binding ViewModel.IsPlaying, Converter={x:Static help:PlayIconConverter.Instance}}" 
+                                       FontSize="30"
+                                       Filled="True"/>
+                    </ui:Button.Icon>
+                </ui:Button>
+                <ui:Button Width="Auto" 
+                           Foreground="Red"
+                           Command="{Binding ViewModel.RecordAsyncCommand}"
+                           CornerRadius="10"
+                           MouseOverBackground="LightBlue"
+                           Margin="20,0,20,0">
+                    <ui:Button.Icon>
+                        <ui:SymbolIcon Symbol="{Binding ViewModel.IsRecording, Converter={x:Static help:RecordIconConverter.Instance}}" FontSize="30"/>
+                    </ui:Button.Icon>
+                </ui:Button>
+                <ui:TextBlock Text="Đang ghi"
+                              VerticalAlignment="Center" 
+                              Foreground="Red"
+                              Visibility="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}"/>
+            </StackPanel>
+        </Border>
         <ui:ListView Grid.Row="1" 
                      d:ItemsSource="{d:SampleData ItemCount=5}"
                      ItemsSource="{Binding ViewModel.Profiles}" 
@@ -33,10 +84,14 @@
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <ui:SymbolIcon Symbol="Person24" FontSize="25" Margin="5,0,15,0"/>
+                            <ui:SymbolIcon Symbol="Person24" 
+                                           FontSize="25"               
+                                           Margin="5,0,15,0"
+                                           Foreground="DeepSkyBlue"/>
                             <StackPanel Grid.Column="1">
                                 <ui:TextBlock Text="{Binding LicensePlate}" 
-                                           FontWeight="Bold" FontSize="16"/>
+                                              FontWeight="Bold" 
+                                              FontSize="16"/>
                             <ui:TextBlock Text="{Binding FullName}" 
                                        Foreground="Gray"/>
                             </StackPanel>
@@ -46,7 +101,14 @@
                 </DataTemplate>
             </ui:ListView.ItemTemplate>
         </ui:ListView>
-
+        <ui:Button Content="{Binding ViewModel.Count}"
+                   Grid.Row="1"
+                   Opacity="0.8"
+                   Width="60"
+                   VerticalAlignment="Bottom"
+                   HorizontalAlignment="Right"
+                   Appearance="Primary"
+                   Margin="0,0,20,20"/>
 
     </Grid>
 </Page>

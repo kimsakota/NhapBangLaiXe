@@ -1,128 +1,105 @@
-﻿using System.Collections.ObjectModel;
-using System.Threading.Tasks;
+﻿using CommunityToolkit.Mvvm.Input;
+using System.Collections.ObjectModel;
 using ToolVip.Models;
+using ToolVip.Services;
 using ToolVip.Views.UseControls;
 using Wpf.Ui;
+using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Controls;
 
 namespace ToolVip.ViewModels.Pages
 {
-    public partial class DashboardViewModel : ObservableObject
+    public partial class DashboardViewModel : ObservableObject, INavigationAware
     {
         private readonly IContentDialogService _contentDialogService;
+        private readonly IDataService _dataService;
+
         [ObservableProperty]
-        private ObservableCollection<DriverProfile> _profiles;
+        private ObservableCollection<DriverProfile> _profiles = new();
 
         [ObservableProperty]
         private DriverProfile? _selectedProfile;
 
-        public DashboardViewModel(IContentDialogService contentDialogService)
+        [ObservableProperty]
+        private bool _isRecording = false;
+
+        [ObservableProperty]
+        private bool _isPlaying = false;
+
+        [ObservableProperty]
+        private int? _count = 0;
+
+        public DashboardViewModel(IContentDialogService contentDialogService, IDataService dataService)
         {
             _contentDialogService = contentDialogService;
-            // Tạo dữ liệu giả lập (Fake data) để test
-            Profiles = new ObservableCollection<DriverProfile>
-            {
-                new DriverProfile
-                {
-                    FullName = "ĐOÀN VĂN HƯƠNG",
-                    Cccd = "001068010416",
-                    IssueDate = "26/08/2021",
-                    PhoneNumber = "0349917927",
-                    WardCommune = "Thành phố Hà Nội - Xã Thuận An",
-                    Address = "Thôn ĐỀ TRỤ 8",
-                    LicensePlate = "29AB40206",
-                    EngineNumber = "VZS139FMB58003270",
-                    ChassisNumber = "RPOCCBPLSMD003270"
-                },
-                new DriverProfile
-                {
-                    FullName = "NGUYỄN VĂN A",
-                    Cccd = "012345678910",
-                    IssueDate = "01/01/2022",
-                    PhoneNumber = "0987654321",
-                    WardCommune = "TP HCM - Quận 1",
-                    Address = "Số 1 Đường Lê Lợi",
-                    LicensePlate = "59T1-12345",
-                    EngineNumber = "HONDA123456",
-                    ChassisNumber = "YAMAHA123456"
-                },
-                new DriverProfile
-                {
-                    FullName = "NGUYỄN VĂN A",
-                    Cccd = "012345678910",
-                    IssueDate = "01/01/2022",
-                    PhoneNumber = "0987654321",
-                    WardCommune = "TP HCM - Quận 1",
-                    Address = "Số 1 Đường Lê Lợi",
-                    LicensePlate = "59T1-12345",
-                    EngineNumber = "HONDA123456",
-                    ChassisNumber = "YAMAHA123456"
-                },
-                new DriverProfile
-                {
-                    FullName = "NGUYỄN VĂN A",
-                    Cccd = "012345678910",
-                    IssueDate = "01/01/2022",
-                    PhoneNumber = "0987654321",
-                    WardCommune = "TP HCM - Quận 1",
-                    Address = "Số 1 Đường Lê Lợi",
-                    LicensePlate = "59T1-12345",
-                    EngineNumber = "HONDA123456",
-                    ChassisNumber = "YAMAHA123456"
-                },
-                new DriverProfile
-                {
-                    FullName = "NGUYỄN VĂN A",
-                    Cccd = "012345678910",
-                    IssueDate = "01/01/2022",
-                    PhoneNumber = "0987654321",
-                    WardCommune = "TP HCM - Quận 1",
-                    Address = "Số 1 Đường Lê Lợi",
-                    LicensePlate = "59T1-12345",
-                    EngineNumber = "HONDA123456",
-                    ChassisNumber = "YAMAHA123456"
-                },
-                new DriverProfile
-                {
-                    FullName = "NGUYỄN VĂN A",
-                    Cccd = "012345678910",
-                    IssueDate = "01/01/2022",
-                    PhoneNumber = "0987654321",
-                    WardCommune = "TP HCM - Quận 1",
-                    Address = "Số 1 Đường Lê Lợi",
-                    LicensePlate = "59T1-12345",
-                    EngineNumber = "HONDA123456",
-                    ChassisNumber = "YAMAHA123456"
-                }
-            };
+            _dataService = dataService;
+
+            // XÓA HẾT DỮ LIỆU GIẢ LẬP CŨ Ở ĐÂY
+        }
+
+        // Mỗi khi quay lại trang Home, tự động load lại danh sách chờ
+        public Task OnNavigatedToAsync()
+        {
+            LoadData();
+            return Task.CompletedTask;
+        }
+
+        public Task OnNavigatedFromAsync() => Task.CompletedTask;
+
+        private void LoadData()
+        {
+            var data = _dataService.LoadPendingData();
+            Profiles = new ObservableCollection<DriverProfile>(data);
+            Count = Profiles.Count;
         }
 
         partial void OnSelectedProfileChanged(DriverProfile? value)
         {
             if (SelectedProfile == null) return;
+
+            // Mở Dialog chi tiết
             var dialogControl = new ChiTietDialog { DataContext = SelectedProfile };
             var dialog = new ContentDialog
             {
                 Title = "Chi tiết hồ sơ",
                 Content = dialogControl,
-                PrimaryButtonText = "Lưu",
+                PrimaryButtonText = "Lưu & Chuyển", // Nút này sẽ lưu sang file Saved
                 CloseButtonText = "Đóng",
                 DefaultButton = ContentDialogButton.Close,
-                
             };
+
             _contentDialogService.ShowAsync(dialog, CancellationToken.None);
 
             dialog.Closing += (s, e) =>
             {
                 if (e.Result == ContentDialogResult.Primary)
+                {
+                    // LOGIC MỚI:
+                    // 1. Gọi Service chuyển từ Pending -> Saved JSON
+                    _dataService.MoveToSaved(SelectedProfile);
+
+                    // 2. Xóa khỏi giao diện trang Home
                     Profiles.Remove(SelectedProfile);
+                    Count--;
+                }
                 else
+                {
                     SelectedProfile = null;
+                }
             };
         }
 
-       
+        [RelayCommand]
+        private async void RecordAsync()
+        {
+            IsRecording = !IsRecording;
+            
+        }
 
-
+        [RelayCommand]
+        private async void PlayAsync()
+        {
+            IsPlaying = !IsPlaying;
+        }
     }
 }

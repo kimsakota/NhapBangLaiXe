@@ -14,10 +14,23 @@ namespace ToolVip.ViewModels.Windows
             new NavigationViewItem()
             {
                 Content = "Home",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Person24 },
                 TargetPageType = typeof(Views.Pages.DashboardPage)
             },
-            
+            new NavigationViewItem()
+            {
+                Content = "Đã lưu",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Save24 }, // Icon Save
+                TargetPageType = typeof(Views.Pages.SavedDataPage)
+            },
+            new NavigationViewItem()
+            {
+                Content = "Nhập",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.ClipboardPaste24 }, // Icon Clipboard
+                TargetPageType = typeof(Views.Pages.ImportPage)
+            },
+
+
         };
 
         [ObservableProperty]

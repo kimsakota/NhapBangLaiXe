@@ -58,6 +58,14 @@ namespace ToolVip
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<ChiTietDialog>();
+
+                services.AddSingleton<IDataService, DataService>();
+
+                services.AddSingleton<ImportPage>();
+                services.AddSingleton<ImportViewModel>();
+
+                services.AddSingleton<SavedDataPage>();
+                services.AddSingleton<SavedDataViewModel>();
             }).Build();
 
         /// <summary>
