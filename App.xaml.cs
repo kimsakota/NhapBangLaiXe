@@ -8,6 +8,7 @@ using ToolVip.Services;
 using ToolVip.ViewModels.Pages;
 using ToolVip.ViewModels.Windows;
 using ToolVip.Views.Pages;
+using ToolVip.Views.UseControls;
 using ToolVip.Views.Windows;
 using Wpf.Ui;
 using Wpf.Ui.Appearance;
@@ -53,6 +54,7 @@ namespace ToolVip
                 services.AddSingleton<DataViewModel>();
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
+                services.AddSingleton<ChiTietDialog>();
             }).Build();
 
         /// <summary>
