@@ -35,6 +35,9 @@ namespace ToolVip
 
                 services.AddHostedService<ApplicationHostService>();
 
+                // Dịch vụ quản lý Dialog
+                services.AddSingleton<IContentDialogService, ContentDialogService>();
+
                 // Theme manipulation
                 services.AddSingleton<IThemeService, ThemeService>();
 
@@ -50,8 +53,8 @@ namespace ToolVip
 
                 services.AddSingleton<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-                services.AddSingleton<DataPage>();
-                services.AddSingleton<DataViewModel>();
+               
+                
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<ChiTietDialog>();

@@ -45,22 +45,84 @@ namespace ToolVip.ViewModels.Pages
                     LicensePlate = "59T1-12345",
                     EngineNumber = "HONDA123456",
                     ChassisNumber = "YAMAHA123456"
+                },
+                new DriverProfile
+                {
+                    FullName = "NGUYỄN VĂN A",
+                    Cccd = "012345678910",
+                    IssueDate = "01/01/2022",
+                    PhoneNumber = "0987654321",
+                    WardCommune = "TP HCM - Quận 1",
+                    Address = "Số 1 Đường Lê Lợi",
+                    LicensePlate = "59T1-12345",
+                    EngineNumber = "HONDA123456",
+                    ChassisNumber = "YAMAHA123456"
+                },
+                new DriverProfile
+                {
+                    FullName = "NGUYỄN VĂN A",
+                    Cccd = "012345678910",
+                    IssueDate = "01/01/2022",
+                    PhoneNumber = "0987654321",
+                    WardCommune = "TP HCM - Quận 1",
+                    Address = "Số 1 Đường Lê Lợi",
+                    LicensePlate = "59T1-12345",
+                    EngineNumber = "HONDA123456",
+                    ChassisNumber = "YAMAHA123456"
+                },
+                new DriverProfile
+                {
+                    FullName = "NGUYỄN VĂN A",
+                    Cccd = "012345678910",
+                    IssueDate = "01/01/2022",
+                    PhoneNumber = "0987654321",
+                    WardCommune = "TP HCM - Quận 1",
+                    Address = "Số 1 Đường Lê Lợi",
+                    LicensePlate = "59T1-12345",
+                    EngineNumber = "HONDA123456",
+                    ChassisNumber = "YAMAHA123456"
+                },
+                new DriverProfile
+                {
+                    FullName = "NGUYỄN VĂN A",
+                    Cccd = "012345678910",
+                    IssueDate = "01/01/2022",
+                    PhoneNumber = "0987654321",
+                    WardCommune = "TP HCM - Quận 1",
+                    Address = "Số 1 Đường Lê Lợi",
+                    LicensePlate = "59T1-12345",
+                    EngineNumber = "HONDA123456",
+                    ChassisNumber = "YAMAHA123456"
                 }
             };
         }
 
-        [RelayCommand]
-        private async Task OnOpenDetailAsync()
+        partial void OnSelectedProfileChanged(DriverProfile? value)
         {
+            if (SelectedProfile == null) return;
             var dialogControl = new ChiTietDialog { DataContext = SelectedProfile };
             var dialog = new ContentDialog
             {
-                Title = $"Chi tiết",
+                Title = "Chi tiết hồ sơ",
                 Content = dialogControl,
+                PrimaryButtonText = "Lưu",
                 CloseButtonText = "Đóng",
-                DefaultButton = ContentDialogButton.Close
+                DefaultButton = ContentDialogButton.Close,
+                
             };
-            await _contentDialogService.ShowAsync(dialog, CancellationToken.None);
+            _contentDialogService.ShowAsync(dialog, CancellationToken.None);
+
+            dialog.Closing += (s, e) =>
+            {
+                if (e.Result == ContentDialogResult.Primary)
+                    Profiles.Remove(SelectedProfile);
+                else
+                    SelectedProfile = null;
+            };
         }
+
+       
+
+
     }
 }

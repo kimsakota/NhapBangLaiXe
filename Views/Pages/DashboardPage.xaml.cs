@@ -1,4 +1,5 @@
 ﻿using System.Windows.Controls;
+using System.Windows.Input;
 using ToolVip.Models;
 using ToolVip.ViewModels.Pages;
 using Wpf.Ui;
@@ -11,16 +12,15 @@ namespace ToolVip.Views.Pages
     public partial class DashboardPage : INavigableView<DashboardViewModel>
     {
         public DashboardViewModel ViewModel { get; }
-        private readonly IContentDialogService _contentDialogService;
-
         public DashboardPage(DashboardViewModel viewModel,
             IContentDialogService contentDialogService)
         {
             ViewModel = viewModel;
-            DataContext = viewModel;
-            _contentDialogService = contentDialogService;
+            DataContext = this;
 
             InitializeComponent();
         }
+
+        
     }
 }
