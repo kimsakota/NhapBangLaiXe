@@ -21,8 +21,6 @@ namespace ToolVip.ViewModels.Pages
         private readonly IDataService _dataService;
         private readonly IRecordService _recordService;
 
-        private readonly MinitouchHelper _minitouch; 
-
         private CancellationTokenSource? _cts;
 
         [ObservableProperty]
@@ -51,14 +49,13 @@ namespace ToolVip.ViewModels.Pages
         public DashboardViewModel(
             IContentDialogService contentDialogService,
             IDataService dataService,
-            IRecordService recordService,
-            MinitouchHelper minitouch)
+            IRecordService recordService
+            )
         {
             _contentDialogService = contentDialogService;
             _dataService = dataService;
             _recordService = recordService;
-            _minitouch = minitouch;
-            Task.Run (() => _minitouch.Start());
+
         }
 
         public Task OnNavigatedToAsync()
@@ -200,12 +197,6 @@ namespace ToolVip.ViewModels.Pages
             #endregion hihi
         }
 
-        [RelayCommand]
-        private async Task TestAsync()
-        {
-            _minitouch.Tap(800, 450);
-            await Task.Delay(500);
-            _minitouch.Swipe(100, 500, 100, 200);
-        }
+     
     }
 }

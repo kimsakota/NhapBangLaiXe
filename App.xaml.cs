@@ -73,7 +73,6 @@ namespace ToolVip
                 services.AddSingleton<SavedDataPage>();
                 services.AddSingleton<SavedDataViewModel>();
 
-                services.AddSingleton<MinitouchHelper>();
 
             }).Build();
 

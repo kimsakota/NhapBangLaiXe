@@ -63,11 +63,6 @@
                               Foreground="Red"
                               Margin="10,0,50,0"
                               Visibility="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}"/>
-                <ui:Button Command="{Binding ViewModel.TestCommand}"
-                           MouseOverBackground="LightBlue"
-                           Margin="30,0,0,0"
-                           Width="30" Height="30"
-                           CornerRadius="10"/>
             </StackPanel>
         </Border>
         <ui:ListView Grid.Row="1" 
@@ -79,33 +74,36 @@
                      >
             <ui:ListView.ItemTemplate>
                 <DataTemplate DataType="{x:Type models:DriverProfile}">
-                    
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-                            <ui:SymbolIcon Symbol="Person24" 
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:SymbolIcon Symbol="Person24" 
                                            FontSize="25"               
                                            Margin="5,0,15,0"
                                            Foreground="DeepSkyBlue"/>
-                            <StackPanel Grid.Column="1">
-                                <ui:TextBlock Text="{Binding LicensePlate}" 
+                        <StackPanel Grid.Column="1">
+                            <ui:TextBlock Text="{Binding LicensePlate}" 
                                               FontWeight="Bold" 
                                               FontSize="16"/>
                             <ui:TextBlock Text="{Binding FullName}" 
                                        Foreground="Gray"/>
-                            </StackPanel>
+                        </StackPanel>
 
                     </Grid>
-                    
+
                 </DataTemplate>
             </ui:ListView.ItemTemplate>
+
         </ui:ListView>
         <ui:Button Content="{Binding ViewModel.Count}"
                    Grid.Row="1"
+                   Width="80" Height="40"
+                   FontWeight="Bold"
+                   FontSize="20"
                    Opacity="0.8"
-                   Width="60"
                    VerticalAlignment="Bottom"
                    HorizontalAlignment="Right"
                    Appearance="Primary"

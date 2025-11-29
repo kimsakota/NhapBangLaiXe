@@ -37,19 +37,6 @@ namespace ToolVip.Services
 
         public bool IsRecording { get; private set; } = false;
 
-        // Khai báo biến toàn cục hoặc trong Service
-        private MinitouchHelper _minitouch = new MinitouchHelper();
-
-        // Khi bắt đầu chạy Auto
-        public void StartAuto()
-        {
-            bool isConnected = _minitouch.Start();
-            if (isConnected)
-            {
-                Debug.WriteLine("Đã kết nối Minitouch thành công!");
-            }
-        }
-
         public RecordService()
         {
             _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "macro_record.json");
