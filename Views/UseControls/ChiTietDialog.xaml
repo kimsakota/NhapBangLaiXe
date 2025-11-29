@@ -10,88 +10,83 @@
     <UserControl.InputBindings>
         <KeyBinding Key="Tab" Command="{Binding AddCommand}"/>
     </UserControl.InputBindings>
-    <Grid Width="310">
+    <Grid Width="250">
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <DockPanel>
-            <StackPanel>
-                <ui:Button Content="{Binding FullName}"
-                           MouseOverBackground="LightBlue"
-                           x:Uid="1"
-                           Margin="0,0,0,5"
-                           Focusable="False"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"
-                           />
-                <ui:Button Content="{Binding Cccd}"
-                           MouseOverBackground="LightBlue"
-                           Margin="0,0,0,5"
-                           x:Uid="2"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"/>
-                <ui:Button Content="{Binding IssueDate}"
-                           MouseOverBackground="LightBlue"
-                           Margin="0,0,0,5"
-                           x:Uid="3"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"/>
-                <ui:Button Content="{Binding PhoneNumber}"
-                           MouseOverBackground="LightBlue"
-                           x:Uid="4"
-                           Margin="0,0,0,5"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"/>
-                <ui:Button Content="{Binding Address}"
-                           MouseOverBackground="LightBlue"
-                           x:Uid="5"
-                           Margin="0,0,0,5"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"/>
-            </StackPanel>
+        <StackPanel HorizontalAlignment="Center">
+            <ui:Button Content="{Binding FullName}"
+                        MouseOverBackground="LightBlue"
+                        x:Uid="1"
+                        Margin="0,0,0,5"
+                        Focusable="False"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"
+                        />
+            <ui:Button Content="{Binding Cccd}"
+                        MouseOverBackground="LightBlue"
+                        Margin="0,0,0,5"
+                        Focusable="False"
+                        x:Uid="2"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
+            <ui:Button Content="{Binding IssueDate}"
+                        MouseOverBackground="LightBlue"
+                        Margin="0,0,0,5"
+                        x:Uid="3"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
+            <ui:Button Content="{Binding PhoneNumber}"
+                        MouseOverBackground="LightBlue"
+                        x:Uid="4"
+                        Margin="0,0,0,5"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
+            <ui:Button Content="{Binding Address}"
+                        MouseOverBackground="LightBlue"
+                        x:Uid="5"
+                        Margin="0,0,0,5"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
             <Rectangle Width="5"/>
-            <StackPanel>
-                <ui:Button Content="{Binding WardCommune}"
-                           MouseOverBackground="LightBlue"
-                           Margin="0,0,0,5"
-                           x:Uid="6"
-                           Focusable="False"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"/>
-                <ui:Button Content="{Binding WardCommune}"
-                           MouseOverBackground="LightBlue"
-                           x:Uid="7"
-                           Margin="0,0,0,5"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"/>
-                <ui:Button Content="{Binding LicensePlate}"
-                           MouseOverBackground="LightBlue"
-                           Margin="0,0,0,5"
-                           x:Uid="8"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Width="150"/>
-                <ui:Button Content="{Binding EngineNumber}"
-                           MouseOverBackground="LightBlue"
-                           Margin="0,0,0,5"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           x:Uid="9"
-                           Width="150"/>
-                <ui:Button Content="{Binding EngineNumber}"
-                           MouseOverBackground="LightBlue"
-                           x:Uid="10"
-                           PreviewMouseDoubleClick="OnButtonDoubleClick"
-                           Margin="0,0,0,5"
-                           Width="150"/>
-            </StackPanel>
-        </DockPanel>
-        <ui:Button Grid.Row="1" 
-                   Content="Tab + Paste"
-                   HorizontalAlignment="Right"
-                   MouseOverBackground="LightBlue"
-                   Appearance="Primary"
-                   Width="100" Height="40"
-                   IsTabStop="False"
-                   Margin="0,-25,0,0"/>
+            <ui:Button Content="{Binding WardCommune}"
+                        MouseOverBackground="LightBlue"
+                        Margin="0,0,0,5"
+                        x:Uid="6"
+                        Focusable="False"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
+            <ui:Button Content="{Binding WardCommune}"
+                        MouseOverBackground="LightBlue"
+                        x:Uid="7"
+                        Margin="0,0,0,5"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
+            <ui:Button Content="{Binding Address}"
+                        MouseOverBackground="LightBlue"
+                        x:Uid="5"
+                        Margin="0,0,0,5"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
+            <ui:Button Content="{Binding LicensePlate}"
+                        MouseOverBackground="LightBlue"
+                        Margin="0,0,0,5"
+                        x:Uid="8"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Width="200"/>
+            <ui:Button Content="{Binding EngineNumber}"
+                        MouseOverBackground="LightBlue"
+                        Margin="0,0,0,5"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        x:Uid="9"
+                        Width="200"/>
+            <ui:Button Content="{Binding EngineNumber}"
+                        MouseOverBackground="LightBlue"
+                        x:Uid="10"
+                        PreviewMouseDoubleClick="OnButtonDoubleClick"
+                        Margin="0,0,0,5"
+                        Width="200"/>
+        </StackPanel>
     </Grid>
 </UserControl>

@@ -1,92 +1,122 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using ToolVip.Models;
-using ToolVip.ViewModels.Pages;
 
 namespace ToolVip.Views.UseControls
 {
-    /// <summary>
-    /// Interaction logic for ChiTietDialog.xaml
-    /// </summary>
     public partial class ChiTietDialog : System.Windows.Controls.UserControl
     {
+        // --- API WINDOWS (Win32) ---
+        [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+        [DllImport("user32.dll")] private static extern IntPtr GetShellWindow();
+        [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
+        [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hWnd); // Kiểm tra cửa sổ còn tồn tại không
+
+        private const int SW_RESTORE = 9;
+
+        // BIẾN LƯU TRỮ CỬA SỔ GIẢ LẬP (CACHE)
+        private IntPtr _cachedEmulatorHandle = IntPtr.Zero;
+
         public ChiTietDialog()
         {
-            
             InitializeComponent();
         }
-        private void OnButtonDoubleClick(object sender, MouseButtonEventArgs e)
+
+        private async void OnButtonDoubleClick(object sender, MouseButtonEventArgs e)
         {
-            // Ngăn sự kiện click đơn lan ra (nếu cần)
             e.Handled = true;
 
             if (sender is System.Windows.Controls.Button btn && btn.DataContext is DriverProfile profile)
             {
-                // 1. Lấy nội dung cần dán (Ví dụ lấy Biển số xe)
-                // Bạn có thể đổi thành profile.FullName hoặc chuỗi bất kỳ
-                //string textToPaste = profile.LicensePlate ?? "";
-                string textToPaste = "";
-                switch (btn.Uid)
-                {
-                    case "1": 
-                        textToPaste = profile.FullName;
-                        break;
-                    case "2":
-                        textToPaste = profile.Cccd;
-                        break;
-                    case "3":
-                        textToPaste = profile.IssueDate;
-                        break;
-                    case "4":
-                        textToPaste = profile.PhoneNumber;
-                        break;  
-                    case "5":
-                        textToPaste = profile.Address;
-                        break;
-                    case "6":
-                        textToPaste = profile.WardCommune;
-                        break;
-                    case "7":
-                        textToPaste = profile.WardCommune;
-                        break;
-                    case "8":
-                        textToPaste = profile.LicensePlate;
-                        break;
-                    case "9":
-                        textToPaste = profile.EngineNumber;
-                        break;
-                     case "10":
-                        textToPaste = profile.ChassisNumber;
-                        break;
-                    default:
-                        break;
-
-
-                }
+                // 1. Lấy dữ liệu
+                string textToPaste = GetTextFromButton(btn.Uid, profile);
 
                 if (!string.IsNullOrEmpty(textToPaste))
                 {
-                    // 2. Copy vào Clipboard
-                    System.Windows.Clipboard.SetText(textToPaste);
+                    try
+                    {
+                        // 2. Ghi vào Clipboard
+                        System.Windows.Clipboard.SetText(textToPaste);
 
-                    // 3. Giả lập bấm Ctrl + V để dán
-                    // "^{v}" nghĩa là giữ Ctrl (^) và nhấn v
-                    SendKeys.SendWait("^{v}");
+                        // 3. Lấy Handle giả lập (Dùng Cache để tăng tốc)
+                        // Nếu chưa có cache hoặc cửa sổ đã bị tắt -> Tìm lại
+                        if (_cachedEmulatorHandle == IntPtr.Zero || !IsWindow(_cachedEmulatorHandle))
+                        {
+                            _cachedEmulatorHandle = FindEmulatorWindow("LDPlayer");
+                        }
+
+                        // Nếu tìm thấy giả lập
+                        if (_cachedEmulatorHandle != IntPtr.Zero)
+                        {
+                            // === KỸ THUẬT FOCUS TOGGLE (TỐI ƯU TỐC ĐỘ) ===
+
+                            // A. Chuyển Focus sang Shell (Cực nhanh)
+                            IntPtr shellHandle = GetShellWindow();
+                            if (shellHandle != IntPtr.Zero)
+                            {
+                                SetForegroundWindow(shellHandle);
+                                await Task.Delay(10); // Chỉ chờ 10ms để kích hoạt sự kiện mất focus
+                            }
+
+                            // B. Chuyển Focus lại Giả lập
+                            if (IsIconic(_cachedEmulatorHandle)) ShowWindow(_cachedEmulatorHandle, SW_RESTORE);
+                            SetForegroundWindow(_cachedEmulatorHandle);
+
+                            // Chờ 20ms để giả lập đồng bộ (Con số thấp nhất an toàn)
+                            await Task.Delay(20);
+
+                            // 4. Gửi lệnh Paste
+                            System.Windows.Forms.SendKeys.SendWait("^{v}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Nếu lỗi, xóa cache để lần sau tìm lại
+                        _cachedEmulatorHandle = IntPtr.Zero;
+                        Debug.WriteLine(ex.Message);
+                    }
                 }
             }
         }
 
+        // Hàm helper lấy dữ liệu
+        private string GetTextFromButton(string uid, DriverProfile profile)
+        {
+            switch (uid)
+            {
+                case "1": return profile.FullName;
+                case "2": return profile.Cccd;
+                case "3": return profile.IssueDate;
+                case "4": return profile.PhoneNumber;
+                case "5": return profile.Address;
+                case "6": return profile.WardCommune;
+                case "7": return profile.WardCommune;
+                case "8": return profile.LicensePlate;
+                case "9": return profile.EngineNumber;
+                case "10": return profile.ChassisNumber;
+                default: return "";
+            }
+        }
+
+        // Tìm kiếm cửa sổ (Chỉ chạy 1 lần đầu tiên)
+        private IntPtr FindEmulatorWindow(string titlePart)
+        {
+            foreach (Process p in Process.GetProcesses())
+            {
+                if (!string.IsNullOrEmpty(p.MainWindowTitle) &&
+                    p.MainWindowTitle.Contains(titlePart, StringComparison.OrdinalIgnoreCase))
+                {
+                    return p.MainWindowHandle;
+                }
+            }
+            return IntPtr.Zero;
+        }
+
+
     }
-}
+}       
