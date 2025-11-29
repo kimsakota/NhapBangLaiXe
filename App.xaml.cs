@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using System.IO;
 using System.Reflection;
 using System.Windows.Threading;
+using ToolVip.Helpers;
 using ToolVip.Services;
 using ToolVip.ViewModels.Pages;
 using ToolVip.ViewModels.Windows;
@@ -71,6 +72,8 @@ namespace ToolVip
 
                 services.AddSingleton<SavedDataPage>();
                 services.AddSingleton<SavedDataViewModel>();
+
+                services.AddSingleton<MinitouchHelper>();
 
             }).Build();
 

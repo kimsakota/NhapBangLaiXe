@@ -2,10 +2,12 @@
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using ToolVip.Helpers;
 using ToolVip.Models;
 
 namespace ToolVip.Services
 {
+
     public interface IRecordService
     {
         void StartRecording();
@@ -13,6 +15,8 @@ namespace ToolVip.Services
         Task PlayRecordingAsync(CancellationToken token);
         bool IsRecording { get; }
     }
+
+
 
     public class RecordService : IRecordService
     {
@@ -32,6 +36,19 @@ namespace ToolVip.Services
         private int _lastY = 0;
 
         public bool IsRecording { get; private set; } = false;
+
+        // Khai báo biến toàn cục hoặc trong Service
+        private MinitouchHelper _minitouch = new MinitouchHelper();
+
+        // Khi bắt đầu chạy Auto
+        public void StartAuto()
+        {
+            bool isConnected = _minitouch.Start();
+            if (isConnected)
+            {
+                Debug.WriteLine("Đã kết nối Minitouch thành công!");
+            }
+        }
 
         public RecordService()
         {
@@ -95,6 +112,7 @@ namespace ToolVip.Services
         // --- PHÁT LẠI (PLAY) ---
         public async Task PlayRecordingAsync(CancellationToken token)
         {
+            #region hihi
             if (!File.Exists(_filePath)) return;
 
             // 1. Luôn tạo danh sách sự kiện MỚI (Local variable) để không dính dáng đến lần chạy trước
@@ -143,6 +161,8 @@ namespace ToolVip.Services
             }
 
             stopwatch.Stop();
+#endregion Hihi
+
         }
 
         // Hàm kiểm tra phím tắt Ctrl + S

@@ -1,8 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
+using ToolVip.Helpers;
 using ToolVip.Models;
 using ToolVip.Services;
 using ToolVip.Views.UseControls;
@@ -18,6 +20,8 @@ namespace ToolVip.ViewModels.Pages
         private readonly IContentDialogService _contentDialogService;
         private readonly IDataService _dataService;
         private readonly IRecordService _recordService;
+
+        private readonly MinitouchHelper _minitouch; 
 
         private CancellationTokenSource? _cts;
 
@@ -42,16 +46,19 @@ namespace ToolVip.ViewModels.Pages
 
         // [MỚI] Biến lưu số lần lặp (Mặc định 1 lần)
         [ObservableProperty]
-        private int _loopCount = 50;
+        private int _loopCount = 100;
 
         public DashboardViewModel(
             IContentDialogService contentDialogService,
             IDataService dataService,
-            IRecordService recordService)
+            IRecordService recordService,
+            MinitouchHelper minitouch)
         {
             _contentDialogService = contentDialogService;
             _dataService = dataService;
             _recordService = recordService;
+            _minitouch = minitouch;
+            Task.Run (() => _minitouch.Start());
         }
 
         public Task OnNavigatedToAsync()
@@ -126,6 +133,7 @@ namespace ToolVip.ViewModels.Pages
         [RelayCommand]
         private async Task PlayAsync()
         {
+            #region hihi
             if (IsRecording)
             {
                 MessageBox.Show("Đang trong chế độ Ghi âm. Vui lòng dừng ghi trước.", "Cảnh báo");
@@ -189,6 +197,15 @@ namespace ToolVip.ViewModels.Pages
             {
                 _cts?.Cancel();
             }
+            #endregion hihi
+        }
+
+        [RelayCommand]
+        private async Task TestAsync()
+        {
+            _minitouch.Tap(800, 450);
+            await Task.Delay(500);
+            _minitouch.Swipe(100, 500, 100, 200);
         }
     }
 }

@@ -63,11 +63,11 @@
                               Foreground="Red"
                               Margin="10,0,50,0"
                               Visibility="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}"/>
-                <ui:TextBox Text="{Binding ViewModel.LoopCount, UpdateSourceTrigger=PropertyChanged}" 
-                            
-                            HorizontalAlignment="Right"
-                            Height="30"
-                            IsEnabled="{Binding ViewModel.IsBusy, Converter={x:Static help:BooleanToConverter.Instance}}"/>
+                <ui:Button Command="{Binding ViewModel.TestCommand}"
+                           MouseOverBackground="LightBlue"
+                           Margin="30,0,0,0"
+                           Width="30" Height="30"
+                           CornerRadius="10"/>
             </StackPanel>
         </Border>
         <ui:ListView Grid.Row="1" 
