@@ -32,13 +32,6 @@ namespace ToolVip.ViewModels.Windows
 
             new NavigationViewItemSeparator(), // Đường kẻ phân cách
 
-            new NavigationViewItem()
-            {
-                Content = "Auto OCR",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.ScanText24 }, // Icon quét chữ
-                TargetPageType = typeof(Views.Pages.AutoClickPage)
-            },
-
         };
 
         [ObservableProperty]

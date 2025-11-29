@@ -73,12 +73,6 @@ namespace ToolVip
                 services.AddSingleton<SavedDataViewModel>();
 
 
-                // 1. Đăng ký ViewModel
-                services.AddSingleton<AutoClickViewModel>();
-
-                // 2. Đăng ký Page
-                services.AddSingleton<AutoClickPage>();
-
             }).Build();
 
         /// <summary>
