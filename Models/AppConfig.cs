@@ -1,9 +1,10 @@
 ﻿namespace ToolVip.Models
 {
-    public class AppConfig
+    public class AutoConfig
     {
-        public string ConfigurationsFolder { get; set; }
-
-        public string AppPropertiesFileName { get; set; }
+        public string StopKeyword { get; set; } = "STOP"; // Từ khóa để dừng
+        public bool IsOcrEnabled { get; set; } = true;    // Có bật OCR không
+        public int OcrInterval { get; set; } = 1000;      // Quét bao lâu 1 lần (ms)
+        public string Language { get; set; } = "vie";     // Ngôn ngữ (vie/eng)
     }
 }

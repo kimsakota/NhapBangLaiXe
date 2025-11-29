@@ -44,6 +44,11 @@ namespace ToolVip
                 // TaskBar manipulation
                 services.AddSingleton<ITaskBarService, TaskBarService>();
 
+                services.AddSingleton<IRecordService, RecordService>();
+                services.AddSingleton<IDataService, DataService>();
+                services.AddSingleton<IOcrService, OcrService>();
+
+
                 // Service containing navigation, same as INavigationWindow... but without window
                 services.AddSingleton<INavigationService, NavigationService>();
 
@@ -59,13 +64,19 @@ namespace ToolVip
                 services.AddSingleton<SettingsViewModel>();
                 services.AddSingleton<ChiTietDialog>();
 
-                services.AddSingleton<IDataService, DataService>();
+                
 
                 services.AddSingleton<ImportPage>();
                 services.AddSingleton<ImportViewModel>();
 
                 services.AddSingleton<SavedDataPage>();
                 services.AddSingleton<SavedDataViewModel>();
+
+                services.AddSingleton<AutoRunPage>();
+                services.AddSingleton<AutoRunViewModel>();
+
+                services.AddSingleton<AutoConfigPage>();
+                services.AddSingleton<AutoConfigViewModel>();
             }).Build();
 
         /// <summary>

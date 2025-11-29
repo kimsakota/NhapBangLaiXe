@@ -30,6 +30,20 @@ namespace ToolVip.ViewModels.Windows
                 TargetPageType = typeof(Views.Pages.ImportPage)
             },
 
+            new NavigationViewItemSeparator(), // Đường kẻ phân cách
+
+            new NavigationViewItem()
+            {
+                Content = "Chạy Auto",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.PlayCircle24 },
+                TargetPageType = typeof(Views.Pages.AutoRunPage)
+            },
+            new NavigationViewItem()
+            {
+                Content = "Cấu hình Auto",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Wrench24 },
+                TargetPageType = typeof(Views.Pages.AutoConfigPage)
+            }
 
         };
 
