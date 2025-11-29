@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Windows; // Đảm bảo có using này cho RoutedEventArgs
 using System.Windows.Controls;
 using System.Windows.Input;
 using ToolVip.Models;
@@ -10,24 +12,18 @@ namespace ToolVip.Views.UseControls
 {
     public partial class ChiTietDialog : System.Windows.Controls.UserControl
     {
-        // --- API WINDOWS (Win32) ---
+        // --- CÁC HÀM API WIN32 GIỮ NGUYÊN ---
         [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
-
-        [DllImport("user32.dll")]
-        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
-
+        [DllImport("user32.dll")] private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
         private const byte VK_CONTROL = 0x11;
         private const byte VK_V = 0x56;
         private const uint KEYEVENTF_KEYUP = 0x0002;
-
         [DllImport("user32.dll")] private static extern IntPtr GetShellWindow();
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
         [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
-        [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hWnd); // Kiểm tra cửa sổ còn tồn tại không
-
+        [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hWnd);
         private const int SW_RESTORE = 9;
 
-        // BIẾN LƯU TRỮ CỬA SỔ GIẢ LẬP (CACHE)
         private IntPtr _cachedEmulatorHandle = IntPtr.Zero;
 
         public ChiTietDialog()
@@ -35,83 +31,60 @@ namespace ToolVip.Views.UseControls
             InitializeComponent();
         }
 
-        private async void OnButtonDoubleClick(object sender, MouseButtonEventArgs e)
+        // [THAY ĐỔI] Đổi tên hàm và tham số sự kiện từ MouseButtonEventArgs -> RoutedEventArgs
+        private async void OnButtonClick(object sender, RoutedEventArgs e)
         {
             e.Handled = true;
 
             if (sender is System.Windows.Controls.Button btn && btn.DataContext is DriverProfile profile)
             {
-                // 1. Lấy dữ liệu
+                // Logic dán giữ nguyên như cũ
                 string textToPaste = GetTextFromButton(btn.Uid, profile);
-
-                if (!string.IsNullOrEmpty(textToPaste))
+                string cleanText = SanitizeText(textToPaste, btn.Uid);
+                if (!string.IsNullOrEmpty(cleanText))
                 {
                     try
                     {
-                        // [FIX 3] Thử set Clipboard nhiều lần để tránh lỗi crash do xung đột
-                        bool copySuccess = false;
-                        for (int i = 0; i < 5; i++)
-                        {
-                            try
-                            {
-                                System.Windows.Clipboard.SetText(textToPaste);
-                                copySuccess = true;
-                                break;
-                            }
-                            catch { await Task.Delay(50); } // Chờ chút rồi thử lại
-                        }
+                        // Copy vào Clipboard
+                        bool copySuccess = true;
+                        
+                        System.Windows.Clipboard.SetText(cleanText);
+                            
 
                         if (!copySuccess)
                         {
-                            System.Windows.MessageBox.Show("Không thể copy vào Clipboard (đang bị ứng dụng khác chiếm giữ).", "Lỗi");
+                            System.Windows.MessageBox.Show("Lỗi Clipboard", "Lỗi");
                             return;
                         }
 
-                        // 2. Kiểm tra lại Handle giả lập
+                        // Tìm và focus cửa sổ giả lập
                         if (_cachedEmulatorHandle == IntPtr.Zero || !IsWindow(_cachedEmulatorHandle))
                         {
-                            // [FIX 2] Tìm kiếm linh hoạt hơn (Contains đã có trong code cũ, nhưng hãy đảm bảo tên đúng)
                             _cachedEmulatorHandle = FindEmulatorWindow("LDPlayer");
                         }
 
-                        // Nếu tìm thấy giả lập
                         if (_cachedEmulatorHandle != IntPtr.Zero)
                         {
-                            // A. Mẹo Focus: Chuyển sang Shell trước để "reset" trạng thái focus
+                            // Mẹo Focus
                             IntPtr shellHandle = GetShellWindow();
                             if (shellHandle != IntPtr.Zero)
                             {
                                 SetForegroundWindow(shellHandle);
-                                await Task.Delay(50); // [FIX 1] Tăng delay lên 50ms
+                                await Task.Delay(50);
                             }
 
-                            // B. Chuyển Focus sang Giả lập
                             if (IsIconic(_cachedEmulatorHandle)) ShowWindow(_cachedEmulatorHandle, SW_RESTORE);
-
-                            // Cố gắng SetForeground nhiều lần (Windows 10/11 rất chặt việc này)
                             SetForegroundWindow(_cachedEmulatorHandle);
 
-                            /*// [FIX 1] TĂNG THỜI GIAN CHỜ LÊN 150ms
-                            // Để đảm bảo cửa sổ LDPlayer đã thực sự nổi lên trước khi bấm phím
-                            await Task.Delay(150);
-
-                            // Chờ 1 chút để chắc chắn giả lập đã nhận focus
-                            await Task.Delay(50); // Có thể tăng lên 100 nếu máy chậm*/
-
-                            // THAY THẾ SendKeys BẰNG ĐOẠN NÀY:
-                            // 1. Nhấn giữ Ctrl
+                            // Gửi phím Ctrl + V
                             keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-                            // 2. Nhấn V
                             keybd_event(VK_V, 0, 0, UIntPtr.Zero);
-                            // 3. Nhả V
                             keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            // 4. Nhả Ctrl
                             keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
                         }
                         else
                         {
-                            // Nếu không tìm thấy thì báo nhẹ để biết
-                            Debug.WriteLine("Không tìm thấy cửa sổ LDPlayer nào.");
+                            Debug.WriteLine("Không tìm thấy cửa sổ LDPlayer.");
                         }
                     }
                     catch (Exception ex)
@@ -123,9 +96,9 @@ namespace ToolVip.Views.UseControls
             }
         }
 
-        // Hàm helper lấy dữ liệu
         private string GetTextFromButton(string uid, DriverProfile profile)
         {
+            // [GIỮ NGUYÊN CODE CŨ]
             switch (uid)
             {
                 case "1": return profile.FullName;
@@ -142,9 +115,9 @@ namespace ToolVip.Views.UseControls
             }
         }
 
-        // Tìm kiếm cửa sổ (Chỉ chạy 1 lần đầu tiên)
         private IntPtr FindEmulatorWindow(string titlePart)
         {
+            // [GIỮ NGUYÊN CODE CŨ]
             foreach (Process p in Process.GetProcesses())
             {
                 if (!string.IsNullOrEmpty(p.MainWindowTitle) &&
@@ -156,6 +129,38 @@ namespace ToolVip.Views.UseControls
             return IntPtr.Zero;
         }
 
+        // [HÀM MỚI] Lọc bỏ ký tự đặc biệt gây lỗi
+        private string SanitizeText(string input, string uid)
+        {
+            if (string.IsNullOrEmpty(input)) return "";
 
+            string text = input.Trim();
+
+            // Xóa sạch các ký tự điều khiển (Null, Tab, Enter...) - Nguyên nhân chính gây lỗi ô vuông
+            text = Regex.Replace(text, @"\p{C}+", "");
+
+            // Xử lý kỹ hơn cho từng loại dữ liệu
+            switch (uid)
+            {
+                case "2": // CCCD
+                case "4": // Số điện thoại
+                case "9": // Số máy
+                case "10": // Số khung
+                    // Chỉ cho phép Số và Chữ cái (A-Z, 0-9). Xóa hết dấu chấm, phẩy, khoảng trắng thừa
+                    text = Regex.Replace(text, @"[^a-zA-Z0-9]", "");
+                    break;
+
+                case "3": // Ngày tháng (IssueDate)
+                          // Chỉ giữ lại số và dấu gạch chéo/ngang
+                    text = Regex.Replace(text, @"[^0-9/\-]", "");
+                    break;
+
+                default:
+                    // Họ tên, Địa chỉ: Giữ nguyên (chỉ xóa ký tự điều khiển ở trên)
+                    break;
+            }
+            return text;
+        }
     }
-}       
+    //1
+}

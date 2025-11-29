@@ -17,7 +17,9 @@
 
         <ui:ListView Grid.Row="1" 
                      ItemsSource="{Binding ViewModel.SavedProfiles}" 
+                     SelectedItem="{Binding ViewModel.SelectedProfile, Mode=TwoWay}"
                      SelectionMode="Single"
+                     x:Name="DriverListView"
                      Margin="10">
             <ui:ListView.ItemTemplate>
                 <DataTemplate DataType="{x:Type models:DriverProfile}">

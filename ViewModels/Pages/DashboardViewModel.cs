@@ -17,9 +17,9 @@ namespace ToolVip.ViewModels.Pages
     {
         private readonly IContentDialogService _contentDialogService;
         private readonly IDataService _dataService;
-        private readonly IRecordService _recordService; // Service xử lý ghi/phát
+        private readonly IRecordService _recordService;
 
-        private CancellationTokenSource? _cts; // Token để hủy tác vụ khi bấm Dừng
+        private CancellationTokenSource? _cts;
 
         [ObservableProperty]
         private ObservableCollection<DriverProfile> _profiles = new();
@@ -31,7 +31,6 @@ namespace ToolVip.ViewModels.Pages
         [NotifyPropertyChangedFor(nameof(IsBusy))]
         private bool _isRecording = false;
 
-        // CẬP NHẬT: Thêm NotifyPropertyChangedFor
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(IsBusy))]
         private bool _isPlaying = false;
@@ -41,7 +40,10 @@ namespace ToolVip.ViewModels.Pages
         [ObservableProperty]
         private int? _count = 0;
 
-        // Inject thêm IRecordService vào Constructor
+        // [MỚI] Biến lưu số lần lặp (Mặc định 1 lần)
+        [ObservableProperty]
+        private int _loopCount = 20;
+
         public DashboardViewModel(
             IContentDialogService contentDialogService,
             IDataService dataService,
@@ -50,11 +52,8 @@ namespace ToolVip.ViewModels.Pages
             _contentDialogService = contentDialogService;
             _dataService = dataService;
             _recordService = recordService;
-
-            // XÓA HẾT DỮ LIỆU GIẢ LẬP CŨ Ở ĐÂY NẾU CẦN
         }
 
-        // Mỗi khi quay lại trang Home, tự động load lại danh sách chờ
         public Task OnNavigatedToAsync()
         {
             LoadData();
@@ -70,18 +69,16 @@ namespace ToolVip.ViewModels.Pages
             Count = Profiles.Count;
         }
 
-        // Xử lý khi chọn một dòng trong danh sách
         partial void OnSelectedProfileChanged(DriverProfile? value)
         {
             if (SelectedProfile == null) return;
 
-            // Mở Dialog chi tiết
             var dialogControl = new ChiTietDialog { DataContext = SelectedProfile };
             var dialog = new ContentDialog
             {
                 Title = "Chi tiết hồ sơ",
                 Content = dialogControl,
-                PrimaryButtonText = "Lưu & Chuyển", // Nút này sẽ lưu sang file Saved
+                PrimaryButtonText = "Lưu & Chuyển",
                 CloseButtonText = "Đóng",
                 DefaultButton = ContentDialogButton.Close,
             };
@@ -92,11 +89,7 @@ namespace ToolVip.ViewModels.Pages
             {
                 if (e.Result == ContentDialogResult.Primary)
                 {
-                    // LOGIC MỚI:
-                    // 1. Gọi Service chuyển từ Pending -> Saved JSON
                     _dataService.MoveToSaved(SelectedProfile);
-
-                    // 2. Xóa khỏi giao diện trang Home
                     Profiles.Remove(SelectedProfile);
                     Count--;
                 }
@@ -107,7 +100,6 @@ namespace ToolVip.ViewModels.Pages
             };
         }
 
-        // XỬ LÝ NÚT GHI (RECORD)
         [RelayCommand]
         private void RecordAsync()
         {
@@ -117,7 +109,6 @@ namespace ToolVip.ViewModels.Pages
                 return;
             }
 
-            // Đảo trạng thái: Nếu đang tắt thì bật, đang bật thì tắt
             IsRecording = !IsRecording;
 
             if (IsRecording)
@@ -131,7 +122,7 @@ namespace ToolVip.ViewModels.Pages
             }
         }
 
-        // XỬ LÝ NÚT CHẠY (PLAY)
+        // [CẬP NHẬT] Hàm chạy Record có hỗ trợ vòng lặp
         [RelayCommand]
         private async Task PlayAsync()
         {
@@ -144,18 +135,40 @@ namespace ToolVip.ViewModels.Pages
             // Nếu chưa chạy -> Bắt đầu chạy
             if (!IsPlaying)
             {
-                IsPlaying = true; // Cập nhật giao diện (Icon đổi thành Stop)
+                IsPlaying = true;
                 _cts = new CancellationTokenSource();
+                var token = _cts.Token;
 
                 try
                 {
-                    // Gọi Service để chạy lại thao tác
-                    // Truyền Token vào để khi bấm Stop thì hàm này sẽ dừng lại ngay
-                    await _recordService.PlayRecordingAsync(_cts.Token);
+                    int currentRun = 0;
+
+                    // Vòng lặp thực thi
+                    while (!token.IsCancellationRequested)
+                    {
+                        // Kiểm tra số lần chạy:
+                        // Nếu LoopCount > 0 (có giới hạn) và đã chạy đủ -> Dừng
+                        if (LoopCount > 0 && currentRun >= LoopCount)
+                        {
+                            break;
+                        }
+
+                        // Gọi Service chạy 1 lượt
+                        await _recordService.PlayRecordingAsync(token);
+
+                        currentRun++;
+
+                        // Nghỉ một chút giữa các lần lặp (tránh máy bị đơ)
+                        // Chỉ nghỉ nếu còn chạy tiếp
+                        if (LoopCount == 0 || currentRun < LoopCount)
+                        {
+                            await Task.Delay(200, token);
+                        }
+                    }
                 }
-                catch (TaskCanceledException)
+                catch (OperationCanceledException)
                 {
-                    // Bắt lỗi khi người dùng bấm Dừng (không làm gì cả)
+                    // Bắt lỗi khi bấm Dừng hoặc Ctrl + S -> Không làm gì cả
                 }
                 catch (Exception ex)
                 {
@@ -163,9 +176,7 @@ namespace ToolVip.ViewModels.Pages
                 }
                 finally
                 {
-                    // Dù chạy xong hay bị hủy, luôn reset trạng thái về ban đầu
                     IsPlaying = false;
-
                     if (_cts != null)
                     {
                         _cts.Dispose();
@@ -176,7 +187,6 @@ namespace ToolVip.ViewModels.Pages
             // Nếu đang chạy -> Bấm lần nữa để Dừng
             else
             {
-                // Gửi yêu cầu hủy tác vụ
                 _cts?.Cancel();
             }
         }

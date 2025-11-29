@@ -7,7 +7,8 @@
         LeftUp,     // Nhả chuột trái (Kết hợp với LeftDown sẽ tạo ra thời gian giữ chuột)
         RightDown,  // Nhấn chuột phải
         RightUp,    // Nhả chuột phải
-        Scroll      // Lăn chuột
+        Scroll,      // Lăn chuột
+        MouseMove   // [MỚI] Di chuyển chuột
         // Nếu cần độ chính xác cực cao về đường đi của chuột, có thể thêm MouseMove, 
         // nhưng sẽ làm file rất nặng. Với auto click, thường chỉ cần tọa độ điểm click.
     }
