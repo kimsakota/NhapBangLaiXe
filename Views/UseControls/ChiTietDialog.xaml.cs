@@ -12,6 +12,14 @@ namespace ToolVip.Views.UseControls
     {
         // --- API WINDOWS (Win32) ---
         [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, UIntPtr dwExtraInfo);
+
+        private const byte VK_CONTROL = 0x11;
+        private const byte VK_V = 0x56;
+        private const uint KEYEVENTF_KEYUP = 0x0002;
+
         [DllImport("user32.dll")] private static extern IntPtr GetShellWindow();
         [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr hWnd);
         [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
@@ -40,45 +48,76 @@ namespace ToolVip.Views.UseControls
                 {
                     try
                     {
-                        // 2. Ghi vào Clipboard
-                        System.Windows.Clipboard.SetText(textToPaste);
+                        // [FIX 3] Thử set Clipboard nhiều lần để tránh lỗi crash do xung đột
+                        bool copySuccess = false;
+                        for (int i = 0; i < 5; i++)
+                        {
+                            try
+                            {
+                                System.Windows.Clipboard.SetText(textToPaste);
+                                copySuccess = true;
+                                break;
+                            }
+                            catch { await Task.Delay(50); } // Chờ chút rồi thử lại
+                        }
 
-                        // 3. Lấy Handle giả lập (Dùng Cache để tăng tốc)
-                        // Nếu chưa có cache hoặc cửa sổ đã bị tắt -> Tìm lại
+                        if (!copySuccess)
+                        {
+                            System.Windows.MessageBox.Show("Không thể copy vào Clipboard (đang bị ứng dụng khác chiếm giữ).", "Lỗi");
+                            return;
+                        }
+
+                        // 2. Kiểm tra lại Handle giả lập
                         if (_cachedEmulatorHandle == IntPtr.Zero || !IsWindow(_cachedEmulatorHandle))
                         {
+                            // [FIX 2] Tìm kiếm linh hoạt hơn (Contains đã có trong code cũ, nhưng hãy đảm bảo tên đúng)
                             _cachedEmulatorHandle = FindEmulatorWindow("LDPlayer");
                         }
 
                         // Nếu tìm thấy giả lập
                         if (_cachedEmulatorHandle != IntPtr.Zero)
                         {
-                            // === KỸ THUẬT FOCUS TOGGLE (TỐI ƯU TỐC ĐỘ) ===
-
-                            // A. Chuyển Focus sang Shell (Cực nhanh)
+                            // A. Mẹo Focus: Chuyển sang Shell trước để "reset" trạng thái focus
                             IntPtr shellHandle = GetShellWindow();
                             if (shellHandle != IntPtr.Zero)
                             {
                                 SetForegroundWindow(shellHandle);
-                                await Task.Delay(10); // Chỉ chờ 10ms để kích hoạt sự kiện mất focus
+                                await Task.Delay(50); // [FIX 1] Tăng delay lên 50ms
                             }
 
-                            // B. Chuyển Focus lại Giả lập
+                            // B. Chuyển Focus sang Giả lập
                             if (IsIconic(_cachedEmulatorHandle)) ShowWindow(_cachedEmulatorHandle, SW_RESTORE);
+
+                            // Cố gắng SetForeground nhiều lần (Windows 10/11 rất chặt việc này)
                             SetForegroundWindow(_cachedEmulatorHandle);
 
-                            // Chờ 20ms để giả lập đồng bộ (Con số thấp nhất an toàn)
-                            await Task.Delay(20);
+                            /*// [FIX 1] TĂNG THỜI GIAN CHỜ LÊN 150ms
+                            // Để đảm bảo cửa sổ LDPlayer đã thực sự nổi lên trước khi bấm phím
+                            await Task.Delay(150);
 
-                            // 4. Gửi lệnh Paste
-                            System.Windows.Forms.SendKeys.SendWait("^{v}");
+                            // Chờ 1 chút để chắc chắn giả lập đã nhận focus
+                            await Task.Delay(50); // Có thể tăng lên 100 nếu máy chậm*/
+
+                            // THAY THẾ SendKeys BẰNG ĐOẠN NÀY:
+                            // 1. Nhấn giữ Ctrl
+                            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
+                            // 2. Nhấn V
+                            keybd_event(VK_V, 0, 0, UIntPtr.Zero);
+                            // 3. Nhả V
+                            keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                            // 4. Nhả Ctrl
+                            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                        }
+                        else
+                        {
+                            // Nếu không tìm thấy thì báo nhẹ để biết
+                            Debug.WriteLine("Không tìm thấy cửa sổ LDPlayer nào.");
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Nếu lỗi, xóa cache để lần sau tìm lại
                         _cachedEmulatorHandle = IntPtr.Zero;
-                        Debug.WriteLine(ex.Message);
+                        Debug.WriteLine("Lỗi dán: " + ex.Message);
                     }
                 }
             }

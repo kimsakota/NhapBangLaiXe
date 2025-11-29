@@ -1,15 +1,21 @@
-﻿namespace ToolVip.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ToolVip.Models
 {
     public class DriverProfile
     {
-        public string? FullName { get; set; }        // Họ tên (Excel Cột 2)
-        public string? Cccd { get; set; }            // Số CCCD (Excel Cột 3)
-        public string? IssueDate { get; set; }       // Ngày cấp (Tự sinh hoặc Excel Cột 4 nếu cần)
-        public string? PhoneNumber { get; set; }     // Điện thoại (Excel Cột 5)
-        public string? Address { get; set; }         // Địa chỉ chi tiết (Excel Cột 6)
-        public string? WardCommune { get; set; }     // Xã/Phường (Excel Cột 7)
-        public string? LicensePlate { get; set; }    // Biển số (Excel Cột 8)
-        public string? EngineNumber { get; set; }    // Số máy (Excel Cột 9)
-        public string? ChassisNumber { get; set; }   // Số khung (Excel Cột 10)
+        public string? FullName { get; set; }        // Họ tên
+        public string? Cccd { get; set; }            // Số CCCD
+        public string? IssueDate { get; set; }       // Ngày cấp
+        public string? PhoneNumber { get; set; }     // Điện thoại
+        public string? WardCommune { get; set; }     // Xã/Phường
+        public string? Address { get; set; }         // Địa chỉ chi tiết
+        public string? LicensePlate { get; set; }    // Biển số
+        public string? EngineNumber { get; set; }    // Số máy
+        public string? ChassisNumber { get; set; }   // Số khung
     }
 }

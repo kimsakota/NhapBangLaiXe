@@ -68,7 +68,8 @@ namespace ToolVip.ViewModels.Pages
                         {
                             FullName = GetPart(parts, 1),      // Cột 2 Excel
                             Cccd = GetPart(parts, 2),          // Cột 3 Excel
-                            PhoneNumber = GetPart(parts, 4),   // Cột 5 Excel
+                            PhoneNumber = GetPart(parts, 3),   // Cột 4 Excel
+                            IssueDate = GetPart(parts, 4),
                             Address = GetPart(parts, 5),       // Cột 6 Excel
                             WardCommune = GetPart(parts, 6),   // Cột 7 Excel
                             LicensePlate = GetPart(parts, 7),  // Cột 8 Excel
@@ -77,7 +78,7 @@ namespace ToolVip.ViewModels.Pages
 
                             // Ngày cấp hiện tại để mặc định là ngày nhập, 
                             // nếu muốn lấy ngày sinh từ Excel thì dùng: GetPart(parts, 3)
-                            IssueDate = DateTime.Now.ToString("dd/MM/yyyy")
+                            
                         };
 
                         // Kiểm tra dữ liệu rác: Phải có Tên hoặc Biển số mới thêm
