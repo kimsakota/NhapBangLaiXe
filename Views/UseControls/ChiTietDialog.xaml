@@ -81,7 +81,7 @@
                         PreviewMouseDoubleClick="OnButtonDoubleClick"
                         x:Uid="9"
                         Width="200"/>
-            <ui:Button Content="{Binding EngineNumber}"
+            <ui:Button Content="{Binding ChassisNumber}"
                         MouseOverBackground="LightBlue"
                         x:Uid="10"
                         PreviewMouseDoubleClick="OnButtonDoubleClick"
