@@ -72,11 +72,7 @@ namespace ToolVip
                 services.AddSingleton<SavedDataPage>();
                 services.AddSingleton<SavedDataViewModel>();
 
-                services.AddSingleton<AutoRunPage>();
-                services.AddSingleton<AutoRunViewModel>();
-
-                services.AddSingleton<AutoConfigPage>();
-                services.AddSingleton<AutoConfigViewModel>();
+            
             }).Build();
 
         /// <summary>
