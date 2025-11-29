@@ -53,13 +53,13 @@ namespace ToolVip.Views.UseControls
                         textToPaste = profile.PhoneNumber;
                         break;  
                     case "5":
-                        textToPaste = profile.WardCommune;
+                        textToPaste = profile.Address;
                         break;
                     case "6":
-                        textToPaste = profile.Address;
+                        textToPaste = profile.WardCommune;
                         break;
                     case "7":
-                        textToPaste = profile.Address;
+                        textToPaste = profile.WardCommune;
                         break;
                     case "8":
                         textToPaste = profile.LicensePlate;
