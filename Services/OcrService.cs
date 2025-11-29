@@ -3,7 +3,8 @@ using System.Drawing; // Cần cài NuGet: System.Drawing.Common
 using System.Drawing.Imaging;
 using System.IO;
 using System.Windows; // Để dùng MessageBox và SystemParameters
-using Tesseract;      // Cần cài NuGet: Tesseract
+using Tesseract;
+using MessageBox = System.Windows.MessageBox;      // Cần cài NuGet: Tesseract
 
 namespace ToolVip.Services
 {
@@ -59,10 +60,6 @@ namespace ToolVip.Services
             try
             {
                 // 1. Lấy kích thước màn hình chính (Primary Screen)
-                // Lưu ý: SystemParameters trả về kích thước logical (DPI-aware), 
-                // có thể cần nhân với tỉ lệ DPI nếu muốn chụp pixel chính xác tuyệt đối.
-                // Ở đây dùng cách đơn giản nhất cho WPF.
-
                 int screenWidth = (int)SystemParameters.PrimaryScreenWidth;
                 int screenHeight = (int)SystemParameters.PrimaryScreenHeight;
 
@@ -78,11 +75,22 @@ namespace ToolVip.Services
                     }
 
                     // 3. Đưa ảnh vào Tesseract để xử lý OCR
-                    using (var page = _engine.Process(bitmap))
+                    // FIX: Sử dụng MemoryStream để chuyển đổi Bitmap sang Pix
+                    // Cách này hoạt động ổn định mà không cần PixConverter
+                    using (var stream = new MemoryStream())
                     {
-                        // Lấy text với độ tin cậy trung bình
-                        // var confidence = page.GetMeanConfidence(); 
-                        return page.GetText();
+                        // Lưu bitmap vào stream dưới dạng BMP (định dạng đơn giản, nhanh)
+                        bitmap.Save(stream, System.Drawing.Imaging.ImageFormat.Bmp);
+
+                        // Load Pix từ mảng byte của stream
+                        using (var pix = Pix.LoadFromMemory(stream.ToArray()))
+                        {
+                            using (var page = _engine.Process(pix))
+                            {
+                                if (page == null) return "";
+                                return page.GetText();
+                            }
+                        }
                     }
                 }
             }

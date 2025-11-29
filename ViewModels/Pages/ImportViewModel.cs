@@ -42,7 +42,7 @@ namespace ToolVip.ViewModels.Pages
 
                 ImportedProfiles.Clear();
 
-                // Vòng lặp bắt đầu từ i = 1 (BỎ QUA DÒNG ĐẦU TIÊN - TIÊU ĐỀ)
+                // Vòng lặp bắt đầu từ i = 1 (TRỪ DÒNG TIÊU ĐỀ)
                 for (int i = 1; i < lines.Length; i++)
                 {
                     var line = lines[i];
@@ -52,31 +52,35 @@ namespace ToolVip.ViewModels.Pages
 
                     try
                     {
-                        // LẤY DỮ LIỆU THEO CỘT CỐ ĐỊNH BẠN YÊU CẦU:
-                        // Cột 2 (Index 1) -> Họ tên
-                        // Cột 3 (Index 2) -> CCCD
-                        // Cột 5 (Index 4) -> Điện thoại
-                        // Cột 7 (Index 6) -> Địa chỉ
-                        // Cột 8 (Index 7) -> Xã/Phường (hoặc phần mở rộng địa chỉ)
-                        // Cột 9 (Index 8) -> Biển số
-                        // Cột 10 (Index 9) -> Số máy
-                        // Cột 11 (Index 10) -> Số khung
+                        // MAPPING DỮ LIỆU TỪ EXCEL (BỎ CỘT ĐẦU TIÊN - STT)
+                        // parts[0]: STT (Bỏ qua)
+                        // parts[1]: Họ tên
+                        // parts[2]: CCCD
+                        // parts[3]: Ngày sinh (Bỏ qua hoặc map nếu muốn)
+                        // parts[4]: SĐT
+                        // parts[5]: Địa chỉ
+                        // parts[6]: Xã/Phường
+                        // parts[7]: Biển số
+                        // parts[8]: Số máy
+                        // parts[9]: Số khung
 
                         var profile = new DriverProfile
                         {
-                            FullName = GetPart(parts, 1),
-                            Cccd = GetPart(parts, 2),
-                            PhoneNumber = GetPart(parts, 4),
-                            Address = GetPart(parts, 6),
-                            WardCommune = GetPart(parts, 7),
-                            LicensePlate = GetPart(parts, 8),
-                            EngineNumber = GetPart(parts, 9),
-                            ChassisNumber = GetPart(parts, 10),
+                            FullName = GetPart(parts, 1),      // Cột 2 Excel
+                            Cccd = GetPart(parts, 2),          // Cột 3 Excel
+                            PhoneNumber = GetPart(parts, 4),   // Cột 5 Excel
+                            Address = GetPart(parts, 5),       // Cột 6 Excel
+                            WardCommune = GetPart(parts, 6),   // Cột 7 Excel
+                            LicensePlate = GetPart(parts, 7),  // Cột 8 Excel
+                            EngineNumber = GetPart(parts, 8),  // Cột 9 Excel
+                            ChassisNumber = GetPart(parts, 9), // Cột 10 Excel
 
+                            // Ngày cấp hiện tại để mặc định là ngày nhập, 
+                            // nếu muốn lấy ngày sinh từ Excel thì dùng: GetPart(parts, 3)
                             IssueDate = DateTime.Now.ToString("dd/MM/yyyy")
                         };
 
-                        // Chỉ thêm nếu có ít nhất Tên hoặc Biển số (tránh dòng trống)
+                        // Kiểm tra dữ liệu rác: Phải có Tên hoặc Biển số mới thêm
                         if (!string.IsNullOrWhiteSpace(profile.FullName) || !string.IsNullOrWhiteSpace(profile.LicensePlate))
                         {
                             ImportedProfiles.Add(profile);
@@ -96,7 +100,6 @@ namespace ToolVip.ViewModels.Pages
             }
         }
 
-        // Lệnh mới: Xóa dữ liệu trên lưới
         [RelayCommand]
         private void OnClearData()
         {

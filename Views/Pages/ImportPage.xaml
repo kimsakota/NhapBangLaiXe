@@ -29,7 +29,7 @@
                        Appearance="Danger" Margin="0,0,10,0"/>
 
             <TextBlock VerticalAlignment="Center" 
-                       Text="Copy từ cột 2 đến cột 11 trong Excel rồi bấm Dán." 
+                       Text="Copy toàn bộ bảng (trừ tiêu đề) rồi bấm Dán."
                        Foreground="Gray" FontStyle="Italic"/>
         </StackPanel>
 
