@@ -97,6 +97,7 @@ namespace ToolVip.Services
         {
             if (!File.Exists(_filePath)) return;
 
+            // 1. Luôn tạo danh sách sự kiện MỚI (Local variable) để không dính dáng đến lần chạy trước
             List<MacroEvent>? events;
             try
             {
@@ -107,24 +108,24 @@ namespace ToolVip.Services
 
             if (events == null || events.Count == 0) return;
 
+            // 2. Tạo Stopwatch MỚI -> Thời gian bắt đầu tính từ 0
             var stopwatch = Stopwatch.StartNew();
             double accumulatedTime = 0;
 
+            // 3. Luôn chạy vòng lặp từ đầu danh sách (foreach hoặc for từ 0)
             foreach (var evt in events)
             {
-                // [MỚI] Kiểm tra Ctrl + S để dừng ngay lập tức
+                // Kiểm tra Ctrl + S để dừng
                 CheckStopHotkey();
 
                 if (token.IsCancellationRequested) break;
 
                 accumulatedTime += evt.Delay;
 
-                // Hybrid Wait Loop
+                // Vòng lặp chờ (Wait Loop)
                 while (true)
                 {
-                    // [MỚI] Kiểm tra trong lúc chờ đợi
                     CheckStopHotkey();
-
                     if (token.IsCancellationRequested) return;
 
                     double elapsed = stopwatch.ElapsedMilliseconds;
@@ -136,6 +137,7 @@ namespace ToolVip.Services
                     else Thread.SpinWait(100);
                 }
 
+                // Thực hiện hành động chuột
                 SetCursorPos(evt.X, evt.Y);
                 PerformMouseAction(evt);
             }

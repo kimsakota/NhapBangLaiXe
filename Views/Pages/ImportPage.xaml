@@ -29,7 +29,7 @@
                        Appearance="Danger" Margin="0,0,10,0"/>
 
             <TextBlock VerticalAlignment="Center" 
-                       Text="Copy toàn bộ bảng (trừ tiêu đề) rồi bấm Dán."
+                       Text="Copy toàn bộ bảng (từ cột 1-11) trừ tiêu đề rồi bấm Dán."
                        Foreground="Gray" FontStyle="Italic"/>
         </StackPanel>
 
@@ -41,13 +41,22 @@
                   Margin="20,0,20,0">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Họ tên" Binding="{Binding FullName}" Width="150"/>
+
                 <DataGridTextColumn Header="CCCD" Binding="{Binding Cccd}" Width="110"/>
-                <DataGridTextColumn Header="SĐT" Binding="{Binding PhoneNumber}" Width="100"/>
-                <DataGridTextColumn Header="Địa chỉ" Binding="{Binding Address}" Width="200"/>
-                <DataGridTextColumn Header="Xã/Phường" Binding="{Binding WardCommune}" Width="120"/>
+
+                <DataGridTextColumn Header="Ngày cấp" Binding="{Binding IssueDate}" Width="100"/>
+
+                <DataGridTextColumn Header="Địa chỉ TT" Binding="{Binding Address}" Width="150"/>
+
+                <DataGridTextColumn Header="Số nhà/Xã" Binding="{Binding WardCommune}" Width="120"/>
+
                 <DataGridTextColumn Header="Biển số" Binding="{Binding LicensePlate}" Width="90"/>
+
                 <DataGridTextColumn Header="Số máy" Binding="{Binding EngineNumber}" Width="110"/>
+
                 <DataGridTextColumn Header="Số khung" Binding="{Binding ChassisNumber}" Width="110"/>
+
+                <DataGridTextColumn Header="SĐT" Binding="{Binding PhoneNumber}" Width="100"/>
             </DataGrid.Columns>
         </DataGrid>
 

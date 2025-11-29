@@ -31,9 +31,10 @@ namespace ToolVip.ViewModels.Pages
                     return;
                 }
 
+                // Tách dòng
                 var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-                // Nếu chỉ có 1 dòng (tiêu đề) thì không làm gì cả
+                // Nếu chỉ có 1 dòng (tiêu đề) thì báo lỗi
                 if (lines.Length <= 1)
                 {
                     MessageBox.Show("Dữ liệu quá ít (chỉ có tiêu đề hoặc trống).", "Lỗi");
@@ -42,7 +43,7 @@ namespace ToolVip.ViewModels.Pages
 
                 ImportedProfiles.Clear();
 
-                // Vòng lặp bắt đầu từ i = 1 (TRỪ DÒNG TIÊU ĐỀ)
+                // Vòng lặp bắt đầu từ i = 1 (BỎ QUA DÒNG TIÊU ĐỀ)
                 for (int i = 1; i < lines.Length; i++)
                 {
                     var line = lines[i];
@@ -52,33 +53,43 @@ namespace ToolVip.ViewModels.Pages
 
                     try
                     {
-                        // MAPPING DỮ LIỆU TỪ EXCEL (BỎ CỘT ĐẦU TIÊN - STT)
-                        // parts[0]: STT (Bỏ qua)
-                        // parts[1]: Họ tên
-                        // parts[2]: CCCD
-                        // parts[3]: Ngày sinh (Bỏ qua hoặc map nếu muốn)
-                        // parts[4]: SĐT
-                        // parts[5]: Địa chỉ
-                        // parts[6]: Xã/Phường
-                        // parts[7]: Biển số
-                        // parts[8]: Số máy
-                        // parts[9]: Số khung
+                        // --- MAPPING DỮ LIỆU TỪ EXCEL (CỘT 2 -> CỘT 11) ---
+                        // Giả sử copy cả cột STT (Cột 1 - Index 0) thì ta bắt đầu lấy từ Index 1.
 
                         var profile = new DriverProfile
                         {
-                            FullName = GetPart(parts, 1),      // Cột 2 Excel
-                            Cccd = GetPart(parts, 2),          // Cột 3 Excel
-                            PhoneNumber = GetPart(parts, 3),   // Cột 4 Excel
-                            IssueDate = GetPart(parts, 4),
-                            Address = GetPart(parts, 5),       // Cột 6 Excel
-                            WardCommune = GetPart(parts, 6),   // Cột 7 Excel
-                            LicensePlate = GetPart(parts, 7),  // Cột 8 Excel
-                            EngineNumber = GetPart(parts, 8),  // Cột 9 Excel
-                            ChassisNumber = GetPart(parts, 9), // Cột 10 Excel
+                            // Cột 2: Họ tên
+                            FullName = GetPart(parts, 2),
 
-                            // Ngày cấp hiện tại để mặc định là ngày nhập, 
-                            // nếu muốn lấy ngày sinh từ Excel thì dùng: GetPart(parts, 3)
+                            // Cột 3: Số CCCD
+                            Cccd = GetPart(parts, 3),
+
+                            // Số điện thoại (PhoneNumber) - (Giả sử cột này là SĐT)
+                            PhoneNumber = GetPart(parts, 4, "0342036732"),
+
+                            // Cột 4: Ngày cấp (Issue Date)
+                            IssueDate = GetPart(parts, 5),
+
+                            // Cột 5: Địa chỉ thường trú (Address)
+                            Address = GetPart(parts, 6),
+
+                            // Cột 6: Số nhà / Xã phường (WardCommune)
+                            WardCommune = GetPart(parts, 7),
+
+                            // Cột 7: Biển số (LicensePlate)
+                            LicensePlate = GetPart(parts, 8),
+
+                            // Cột 8: Số máy (EngineNumber)
+                            EngineNumber = GetPart(parts, 9),
+
+                            // Cột 9: Số khung (ChassisNumber)
+                            ChassisNumber = GetPart(parts, 10),
+
                             
+
+                            // Cột 11: (Dư thừa hoặc Ghi chú) - Nếu cần lấy thêm thì gán vào đâu đó
+                            // Ví dụ: Nếu Excel có cột ghi chú, có thể nối vào địa chỉ
+                            // Note = GetPart(parts, 10) 
                         };
 
                         // Kiểm tra dữ liệu rác: Phải có Tên hoặc Biển số mới thêm
@@ -119,20 +130,22 @@ namespace ToolVip.ViewModels.Pages
         {
             if (ImportedProfiles.Count == 0) return;
 
-            // Lưu vào danh sách chờ (Pending)
+            // Hàm này sẽ tự động lưu vào JSON thông qua DataService
             _dataService.AddToPending(ImportedProfiles.ToList());
 
-            MessageBox.Show($"Đã thêm {ImportedProfiles.Count} hồ sơ vào Trang chủ!", "Thành công");
+            MessageBox.Show($"Đã lưu {ImportedProfiles.Count} hồ sơ vào hệ thống!", "Thành công");
             ImportedProfiles.Clear();
         }
 
-        private string GetPart(string[] parts, int index)
+        private string GetPart(string[] parts, int index, string defaultValue = "")
         {
             if (index >= 0 && index < parts.Length)
             {
-                return parts[index].Trim();
+                var val = parts[index].Trim();
+                // Nếu cắt khoảng trắng xong mà rỗng thì trả về mặc định
+                return string.IsNullOrEmpty(val) ? defaultValue : val;
             }
-            return "";
+            return defaultValue; // Trả về mặc định nếu index không tồn tại
         }
     }
 }

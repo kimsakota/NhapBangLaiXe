@@ -7,6 +7,7 @@ using System.Windows; // Đảm bảo có using này cho RoutedEventArgs
 using System.Windows.Controls;
 using System.Windows.Input;
 using ToolVip.Models;
+using WindowsInput;
 
 namespace ToolVip.Views.UseControls
 {
@@ -38,26 +39,15 @@ namespace ToolVip.Views.UseControls
 
             if (sender is System.Windows.Controls.Button btn && btn.DataContext is DriverProfile profile)
             {
-                // Logic dán giữ nguyên như cũ
+                // Logic: Tìm cửa sổ -> Focus -> Đợi một chút -> Gõ phím
                 string textToPaste = GetTextFromButton(btn.Uid, profile);
                 string cleanText = SanitizeText(textToPaste, btn.Uid);
+
                 if (!string.IsNullOrEmpty(cleanText))
                 {
                     try
                     {
-                        // Copy vào Clipboard
-                        bool copySuccess = true;
-                        
-                        System.Windows.Clipboard.SetText(cleanText);
-                            
-
-                        if (!copySuccess)
-                        {
-                            System.Windows.MessageBox.Show("Lỗi Clipboard", "Lỗi");
-                            return;
-                        }
-
-                        // Tìm và focus cửa sổ giả lập
+                        // 1. Tìm cửa sổ giả lập nếu chưa có handle
                         if (_cachedEmulatorHandle == IntPtr.Zero || !IsWindow(_cachedEmulatorHandle))
                         {
                             _cachedEmulatorHandle = FindEmulatorWindow("LDPlayer");
@@ -65,22 +55,34 @@ namespace ToolVip.Views.UseControls
 
                         if (_cachedEmulatorHandle != IntPtr.Zero)
                         {
-                            // Mẹo Focus
+                            // 2. Kỹ thuật "Trick" để chiếm quyền focus (giữ nguyên logic của bạn)
+                            // Đôi khi Windows chặn không cho ứng dụng background chiếm quyền focus,
+                            // nên cần focus vào Shell trước.
                             IntPtr shellHandle = GetShellWindow();
                             if (shellHandle != IntPtr.Zero)
                             {
                                 SetForegroundWindow(shellHandle);
-                                await Task.Delay(50);
+                                await Task.Delay(50); // Đợi Shell nhận focus
                             }
 
-                            if (IsIconic(_cachedEmulatorHandle)) ShowWindow(_cachedEmulatorHandle, SW_RESTORE);
+                            // 3. Khôi phục cửa sổ nếu đang bị thu nhỏ (Minimize)
+                            if (IsIconic(_cachedEmulatorHandle))
+                            {
+                                ShowWindow(_cachedEmulatorHandle, SW_RESTORE);
+                                await Task.Delay(100); // Đợi cửa sổ phóng to lên
+                            }
+
+                            // 4. Focus vào LDPlayer
                             SetForegroundWindow(_cachedEmulatorHandle);
 
-                            // Gửi phím Ctrl + V
-                            keybd_event(VK_CONTROL, 0, 0, UIntPtr.Zero);
-                            keybd_event(VK_V, 0, 0, UIntPtr.Zero);
-                            keybd_event(VK_V, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
-                            keybd_event(VK_CONTROL, 0, KEYEVENTF_KEYUP, UIntPtr.Zero);
+                            // QUAN TRỌNG: Phải đợi một chút để cửa sổ thực sự Active rồi mới gõ
+                            await Task.Delay(200);
+
+                            // 5. Thực hiện gõ phím bằng InputSimulator
+                            var sim = new InputSimulator();
+                            sim.Keyboard.TextEntry(cleanText);
+
+                            Debug.WriteLine($"Đã nhập: {cleanText}");
                         }
                         else
                         {
@@ -89,8 +91,9 @@ namespace ToolVip.Views.UseControls
                     }
                     catch (Exception ex)
                     {
+                        // Reset handle nếu lỗi để lần sau tìm lại
                         _cachedEmulatorHandle = IntPtr.Zero;
-                        Debug.WriteLine("Lỗi dán: " + ex.Message);
+                        Debug.WriteLine("Lỗi thao tác: " + ex.Message);
                     }
                 }
             }

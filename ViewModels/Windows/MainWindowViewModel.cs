@@ -32,6 +32,8 @@ namespace ToolVip.ViewModels.Windows
 
             new NavigationViewItemSeparator(), // Đường kẻ phân cách
 
+            
+
         };
 
         [ObservableProperty]

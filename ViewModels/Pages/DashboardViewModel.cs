@@ -42,7 +42,7 @@ namespace ToolVip.ViewModels.Pages
 
         // [MỚI] Biến lưu số lần lặp (Mặc định 1 lần)
         [ObservableProperty]
-        private int _loopCount = 20;
+        private int _loopCount = 50;
 
         public DashboardViewModel(
             IContentDialogService contentDialogService,

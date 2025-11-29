@@ -72,7 +72,6 @@ namespace ToolVip
                 services.AddSingleton<SavedDataPage>();
                 services.AddSingleton<SavedDataViewModel>();
 
-
             }).Build();
 
         /// <summary>
