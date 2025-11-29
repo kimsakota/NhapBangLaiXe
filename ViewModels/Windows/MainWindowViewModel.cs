@@ -31,8 +31,13 @@ namespace ToolVip.ViewModels.Windows
             },
 
             new NavigationViewItemSeparator(), // Đường kẻ phân cách
+            new NavigationViewItem()
+            {
+                Content = "OCR",
+                Icon = new SymbolIcon { Symbol = SymbolRegular.ScanObject24 }, // Icon quét
+                TargetPageType = typeof(Views.Pages.AutoPage)
+            },
 
-            
 
         };
 

@@ -1,0 +1,165 @@
+﻿<Page x:Class="ToolVip.Views.Pages.AutoPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:local="clr-namespace:ToolVip.Views.Pages"
+      xmlns:models="clr-namespace:ToolVip.Models"
+      Title="AutoPage"
+      d:DataContext="{d:DesignInstance local:AutoPage, IsDesignTimeCreatable=False}"
+      d:DesignHeight="700" d:DesignWidth="900"
+      ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
+      ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+      ScrollViewer.CanContentScroll="False"
+      mc:Ignorable="d">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <!-- Log area -->
+        </Grid.RowDefinitions>
+
+        <!-- === CỘT TRÁI: DANH SÁCH VÙNG QUÉT === -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height=".5*"/>
+            </Grid.RowDefinitions>
+
+            <ui:TextBlock Text="Vùng Quét OCR" FontTypography="Subtitle" Margin="0,0,0,10"/>
+
+            <!-- Form Nhập Vùng -->
+            <ui:Card Grid.Row="1" Margin="0,0,0,10" Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Tọa độ -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="10"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <ui:TextBlock Text="Điểm A (X1, Y1) = Shift + A" 
+                                          FontWeight="Bold"
+                                          FontSize="13" Margin="0,0,0,5"/>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:TextBox Text="{Binding ViewModel.ZoneX1}" 
+                                            Width="82" 
+                                            Margin="0,0,5,0" 
+                                            PlaceholderText="X1"
+                                            IsEnabled="False"/>
+                                <ui:TextBox Text="{Binding ViewModel.ZoneY1}" 
+                                            Width="82" 
+                                            PlaceholderText="Y1"
+                                            IsEnabled="False"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="3">
+                            <ui:TextBlock Text="Điểm B (X2, Y2) = Shift + S" 
+                                          FontSize="13" 
+                                          FontWeight="Bold"
+                                          Margin="0,0,0,5"/>
+                            <StackPanel Orientation="Horizontal">
+                                <ui:TextBox Text="{Binding ViewModel.ZoneX2}" 
+                                            Width="82" 
+                                            Margin="0,0,5,0" 
+                                            PlaceholderText="X2"
+                                            IsEnabled="False"/>
+                                <ui:TextBox Text="{Binding ViewModel.ZoneY2}" 
+                                            Width="82" 
+                                            PlaceholderText="Y2"
+                                            IsEnabled="False"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Từ khóa -->
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <ui:TextBlock Text="Từ khóa cần tìm" Margin="0,0,0,5"/>
+                            <ui:TextBox PlaceholderText="Ví dụ: LƯU LẠI" 
+                                        Text="{Binding ViewModel.ZoneKeyword}" 
+                                        Icon="{ui:SymbolIcon Search24}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Buttons -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <ui:Button Command="{Binding ViewModel.AddZoneCommand}" Icon="{ui:SymbolIcon Add24}" Content="Thêm" Appearance="Primary" Margin="0,0,5,0"/>
+                        <ui:Button Command="{Binding ViewModel.UpdateZoneCommand}" Icon="{ui:SymbolIcon Edit24}" Content="Sửa" Appearance="Caution" Margin="0,0,5,0"/>
+                        <ui:Button Command="{Binding ViewModel.DeleteZoneCommand}" Icon="{ui:SymbolIcon Delete24}" Appearance="Danger"/>
+                    </StackPanel>
+                </Grid>
+            </ui:Card>
+
+            <!-- List Vùng -->
+            <ui:ListView Grid.Row="2"
+                         ItemsSource="{Binding ViewModel.ScanZones}" 
+                         SelectedItem="{Binding ViewModel.SelectedZone}" SelectionMode="Single">
+                <ui:ListView.ItemTemplate>
+                    <DataTemplate DataType="{x:Type models:ScanZone}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <ui:SymbolIcon Symbol="ScanObject24" Margin="0,0,10,0" Foreground="CornflowerBlue"/>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding Keyword}" FontWeight="Bold"/>
+                                <TextBlock Text="{Binding CoordinateString}" FontSize="11" Foreground="Gray"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ui:ListView.ItemTemplate>
+            </ui:ListView>
+            <!-- Log -->
+            <Border Grid.Row="3" Background="#F5F5F5" CornerRadius="4" Padding="10">
+                <TextBlock Text="{Binding ViewModel.LogText}" TextTrimming="CharacterEllipsis" 
+                           VerticalAlignment="Center" FontFamily="Consolas"/>
+            </Border>
+        </Grid>
+
+        <!-- === DÒNG DƯỚI: ĐIỀU KHIỂN & LOG === -->
+        <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,20,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Nút Start -->
+            <ui:Button Command="{Binding ViewModel.ToggleRunCommand}" 
+                       Icon="{ui:SymbolIcon Play24}" 
+                       Content="{Binding ViewModel.IsRunning, Converter={x:Static local:RunStateToStringConverter.Instance}}"
+                       Appearance="{Binding ViewModel.IsRunning, Converter={x:Static local:RunStateToColorConverter.Instance}}"
+                       Height="40" FontSize="16" Padding="15,0"/>
+
+            
+
+            <!-- Options -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox Content="Lặp lại (Loop)" IsChecked="{Binding ViewModel.IsLoop}" Margin="0,0,10,0"/>
+                <ui:Button Icon="{ui:SymbolIcon Eraser24}" Command="{Binding ViewModel.ClearLogCommand}" ToolTip="Xóa Log"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

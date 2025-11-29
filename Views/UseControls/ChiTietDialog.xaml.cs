@@ -49,9 +49,7 @@ namespace ToolVip.Views.UseControls
                     {
                         // 1. Tìm cửa sổ giả lập nếu chưa có handle
                         if (_cachedEmulatorHandle == IntPtr.Zero || !IsWindow(_cachedEmulatorHandle))
-                        {
                             _cachedEmulatorHandle = FindEmulatorWindow("LDPlayer");
-                        }
 
                         if (_cachedEmulatorHandle != IntPtr.Zero)
                         {

@@ -73,7 +73,9 @@ namespace ToolVip
                 services.AddSingleton<SavedDataPage>();
                 services.AddSingleton<SavedDataViewModel>();
 
-
+                services.AddSingleton<Views.Pages.AutoPage>();
+                services.AddSingleton<ViewModels.Pages.AutoViewModel>();
+                services.AddSingleton<ConfigDialog>();
             }).Build();
 
         /// <summary>
