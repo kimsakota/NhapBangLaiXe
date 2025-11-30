@@ -27,7 +27,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="2*"/>
+                <RowDefinition Height="*"/>
                 <RowDefinition Height="5"/>
                 <!-- GridSplitter giả -->
                 <RowDefinition Height="1*"/>
@@ -38,10 +38,12 @@
             <!-- List Vùng -->
             <ui:ListView Grid.Row="2"
                          ItemsSource="{Binding ViewModel.ScanZones}" 
-                         SelectedItem="{Binding ViewModel.SelectedZone}" SelectionMode="Single">
+                         SelectedItem="{Binding ViewModel.SelectedZone}" 
+                         SelectionMode="Single"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                 <ui:ListView.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:ScanZone}">
-                        <Grid Height="35">
+                        <Grid >
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
@@ -49,7 +51,7 @@
                             <!-- Icon -->
                             <ui:SymbolIcon Symbol="ScanObject24" 
                                            Margin="0,0,10,0" 
-                                           FontSize="30"
+                                           FontSize="32"
                                            Foreground="CornflowerBlue" 
                                            VerticalAlignment="Center"/>
 

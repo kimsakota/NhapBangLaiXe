@@ -25,8 +25,15 @@
         <Border Grid.Row="0"
                 BorderBrush="LightGray"
                 BorderThickness="0,0,0,2">
-            <StackPanel Orientation="Horizontal">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
                 <ui:Button Width="Auto" 
+                           Grid.Column="0"
                            Foreground="Orange"
                            Icon="{ui:SymbolIcon Symbol=Folder24, FontSize=30, Filled=True}"
                            CornerRadius="10"
@@ -35,6 +42,7 @@
                            Margin="20,0,0,0"/>
                 
                 <ui:Button Width="Auto" 
+                           Grid.Column="1"
                            Command="{Binding ViewModel.PlayCommand}"
                            Foreground="Green"
                            CornerRadius="10"
@@ -47,23 +55,28 @@
                                        Filled="True"/>
                     </ui:Button.Icon>
                 </ui:Button>
+                
+                <ui:TextBlock Text="Đang ghi"
+                              Grid.Column="2"
+                              VerticalAlignment="Center" 
+                              Foreground="Red"
+                              Margin="10,0,10,0"
+                              HorizontalAlignment="Right"
+                              Visibility="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}"/>
                 <ui:Button Width="Auto" 
+                           Grid.Column="3"
                            Foreground="Red"
                            Command="{Binding ViewModel.RecordAsyncCommand}"
                            CornerRadius="10"
+                           HorizontalAlignment="Right"
                            MouseOverBackground="LightBlue"
                            IsEnabled="{Binding ViewModel.IsPlaying, Converter={x:Static help:BooleanToConverter.Instance}}"
-                           Margin="20,0,0,0">
+                           Margin="20,0,20,0">
                     <ui:Button.Icon>
                         <ui:SymbolIcon Symbol="{Binding ViewModel.IsRecording, Converter={x:Static help:RecordIconConverter.Instance}}" FontSize="30"/>
                     </ui:Button.Icon>
                 </ui:Button>
-                <ui:TextBlock Text="Đang ghi"
-                              VerticalAlignment="Center" 
-                              Foreground="Red"
-                              Margin="10,0,50,0"
-                              Visibility="{Binding ViewModel.IsRecording, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}"/>
-            </StackPanel>
+            </Grid>
         </Border>
         <ui:ListView Grid.Row="1" 
                      d:ItemsSource="{d:SampleData ItemCount=5}"

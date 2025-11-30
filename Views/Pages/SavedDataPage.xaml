@@ -13,7 +13,10 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Danh sách Đã Lưu trữ" FontSize="20" FontWeight="Bold" Margin="20,10"/>
+        <ui:TextBlock Text="Danh sách Đã Lưu trữ" 
+                      FontSize="20" 
+                      FontWeight="Bold" 
+                      Margin="20,10"/>
 
         <ui:ListView Grid.Row="1" 
                      ItemsSource="{Binding ViewModel.SavedProfiles}" 

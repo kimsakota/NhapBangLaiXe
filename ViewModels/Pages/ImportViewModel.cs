@@ -20,6 +20,12 @@ namespace ToolVip.ViewModels.Pages
         [ObservableProperty] private bool _isLoggedIn = false;
         [ObservableProperty] private bool _isBusy = false;
 
+        [ObservableProperty]
+        private ObservableCollection<int> _limitOptions = new() { 1, 2, 20, 50, 100 };
+
+        [ObservableProperty]
+        private int _selectedLimit = 1;
+
         public ImportViewModel(IDataService dataService, IApiService apiService)
         {
             _dataService = dataService;
@@ -54,7 +60,7 @@ namespace ToolVip.ViewModels.Pages
             if (success)
             {
                 IsLoggedIn = true;
-                MessageBox.Show("Đăng nhập thành công!", "Thông báo");
+                //MessageBox.Show("Đăng nhập thành công!", "Thông báo");
             }
             else
             {
@@ -72,7 +78,8 @@ namespace ToolVip.ViewModels.Pages
             }
 
             IsBusy = true;
-            var data = await _apiService.GetProfilesAsync();
+
+            var data = await _apiService.GetProfilesAsync(SelectedLimit);
             IsBusy = false;
 
             if (data != null && data.Count > 0)
@@ -86,7 +93,7 @@ namespace ToolVip.ViewModels.Pages
                 // [QUAN TRỌNG] Lưu ngay vào Temp sau khi lấy về để tránh mất
                 _dataService.SaveToTemp(ImportedProfiles.ToList());
 
-                MessageBox.Show($"Đã lấy được {data.Count} hồ sơ từ Server (Đã lưu Temp).", "Thành công");
+                //MessageBox.Show($"Đã lấy được {data.Count} hồ sơ từ Server (Đã lưu Temp).", "Thành công");
             }
             else
             {
@@ -215,7 +222,7 @@ namespace ToolVip.ViewModels.Pages
             // Lưu vào Pending chính thức
             _dataService.AddToPending(ImportedProfiles.ToList());
 
-            MessageBox.Show($"Đã lưu {ImportedProfiles.Count} hồ sơ vào hệ thống (Local)!", "Thành công");
+            //MessageBox.Show($"Đã lưu {ImportedProfiles.Count} hồ sơ vào hệ thống (Local)!", "Thành công");
             ImportedProfiles.Clear();
 
             // Temp import đã được xử lý trong AddToPending (xóa file temp)

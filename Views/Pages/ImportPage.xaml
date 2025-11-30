@@ -16,7 +16,6 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!-- === PHẦN 1: ĐĂNG NHẬP API === -->
@@ -30,15 +29,16 @@
                 <!-- Form đăng nhập (Ẩn khi đã login) -->
                 <StackPanel Orientation="Horizontal" 
                             Visibility="{Binding ViewModel.IsLoggedIn, Converter={x:Static help:BooleanToCollapsedConverter.Instance}}">
-                    <TextBlock Text="API Service" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,15,0"/>
-
                     <ui:TextBox PlaceholderText="Username" 
                                 Text="{Binding ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                Width="100" Margin="0,0,5,0"/>
+                                IsReadOnly="True"
+                                Width="120" Margin="0,0,5,0"/>
 
-                    <ui:TextBox PlaceholderText="Password" 
-                                Text="{Binding ViewModel.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                Width="100" Margin="0,0,10,0"/>
+                    <ui:PasswordBox PlaceholderText="Password" 
+                                    IsReadOnly="True"
+                                    Password="{Binding ViewModel.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    ClearButtonEnabled="False"
+                                    Width="120" Margin="0,0,10,0"/>
 
                     <!-- [SỬA] Thêm Symbol= cho Icon -->
                     <ui:Button Command="{Binding ViewModel.LoginCommand}" 
@@ -51,7 +51,7 @@
                 <StackPanel Orientation="Horizontal" 
                             Visibility="{Binding ViewModel.IsLoggedIn, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}">
                     <ui:SymbolIcon Symbol="CheckmarkCircle24" Foreground="Green" Margin="0,0,10,0"/>
-                    <TextBlock Text="Đã kết nối tới API Service" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="Green"/>
+                    <TextBlock Text="Đã kết nối tới Sever" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="Green"/>
 
                     <!-- [SỬA] Thêm Symbol= cho Icon -->
                     <!-- Các nút chức năng API -->
@@ -60,6 +60,13 @@
                                Appearance="Primary" 
                                Icon="{ui:SymbolIcon Symbol=ArrowDownload24}"
                                Margin="20,0,0,0"/>
+
+                    <ComboBox ItemsSource="{Binding ViewModel.LimitOptions}"
+                              SelectedItem="{Binding ViewModel.SelectedLimit, Mode=TwoWay}"
+                              ToolTip="Số lượng hồ sơ cần lấy"
+                              Foreground="Green"
+                              FontWeight="Bold"
+                              Margin="20,0,0,0"/>
                 </StackPanel>
 
                 <!-- Loading Indicator -->
@@ -70,21 +77,32 @@
         </ui:Card>
 
         <!-- === PHẦN 2: CÔNG CỤ CŨ === -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="20,10,20,10">
-            <ui:Button Command="{Binding ViewModel.PasteFromClipboardCommand}" 
+        <Border Grid.Row="1" 
+                Margin="10,0,20,10">
+            <!-->
+                <ui:Button Command="{Binding ViewModel.PasteFromClipboardCommand}" 
                        Content="Dán từ Excel" 
+                       IsEnabled="False"
                        Icon="{ui:SymbolIcon Symbol=ClipboardPaste24}"
                        Appearance="Secondary" Margin="0,0,10,0"/>
 
-            <ui:Button Command="{Binding ViewModel.ClearDataCommand}" 
+                <ui:Button Command="{Binding ViewModel.ClearDataCommand}" 
                        Content="Xóa danh sách" 
+                       IsEnabled="False"
                        Icon="{ui:SymbolIcon Symbol=Delete24}"
                        Appearance="Danger" Margin="0,0,10,0"/>
 
-            <TextBlock VerticalAlignment="Center" 
-                       Text="Lưu ý: Dán từ Excel sẽ ghi đè danh sách hiện tại."
+                <TextBlock VerticalAlignment="Center" 
                        Foreground="Gray" FontStyle="Italic"/>
-        </StackPanel>
+            </!-->
+            <ui:Button Grid.Row="1" 
+                       Command="{Binding ViewModel.SaveToDatabaseCommand}" 
+                       Content="Lưu tất cả vào CSDL Local" 
+                       Appearance="Success" 
+                       Icon="{ui:SymbolIcon Symbol=Save24}"
+                       HorizontalAlignment="Left" 
+                       Height="36"/>
+        </Border>
 
         <!-- === PHẦN 3: BẢNG DỮ LIỆU === -->
         <DataGrid Grid.Row="2" 
@@ -97,22 +115,13 @@
                 <DataGridTextColumn Header="Họ tên" Binding="{Binding FullName}" Width="150"/>
                 <DataGridTextColumn Header="CCCD" Binding="{Binding Cccd}" Width="110"/>
                 <DataGridTextColumn Header="Ngày cấp" Binding="{Binding IssueDate}" Width="100"/>
-                <DataGridTextColumn Header="Địa chỉ TT" Binding="{Binding Address}" Width="150"/>
-                <DataGridTextColumn Header="Số nhà/Xã" Binding="{Binding WardCommune}" Width="120"/>
-                <DataGridTextColumn Header="Biển số" Binding="{Binding LicensePlate}" Width="90"/>
-                <DataGridTextColumn Header="Số máy" Binding="{Binding EngineNumber}" Width="110"/>
-                <DataGridTextColumn Header="Số khung" Binding="{Binding ChassisNumber}" Width="110"/>
                 <DataGridTextColumn Header="SĐT" Binding="{Binding PhoneNumber}" Width="100"/>
+                <DataGridTextColumn Header="Địa chỉ TT" Binding="{Binding Address}" Width="250"/>
+                <DataGridTextColumn Header="Số nhà/Xã" Binding="{Binding WardCommune}" Width="250"/>
+                <DataGridTextColumn Header="Biển số" Binding="{Binding LicensePlate}" Width="90"/>
+                <DataGridTextColumn Header="Số máy" Binding="{Binding EngineNumber}" Width="180"/>
+                <DataGridTextColumn Header="Số khung" Binding="{Binding ChassisNumber}" Width="180"/>
             </DataGrid.Columns>
         </DataGrid>
-
-        <!-- === PHẦN 4: LƯU VÀO DB CỤC BỘ === -->
-        <ui:Button Grid.Row="3" 
-                   Command="{Binding ViewModel.SaveToDatabaseCommand}" 
-                   Content="Lưu tất cả vào CSDL Local" 
-                   Appearance="Success" 
-                   Icon="{ui:SymbolIcon Symbol=Save24}"
-                   HorizontalAlignment="Right" 
-                   Margin="20"/>
     </Grid>
 </Page>

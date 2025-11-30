@@ -11,7 +11,7 @@ namespace ToolVip.Services
         bool IsLoggedIn { get; }
         string CurrentRole { get; }
         Task<bool> LoginAsync(string username, string password);
-        Task<List<DriverProfile>> GetProfilesAsync();
+        Task<List<DriverProfile>> GetProfilesAsync(int limit = 1);
         Task<bool> ImportProfileAsync(DriverProfile profile);
         Task<bool> ConfirmImportedAsync(string licensePlate);
     }
@@ -70,7 +70,7 @@ namespace ToolVip.Services
             }
         }
 
-        public async Task<List<DriverProfile>> GetProfilesAsync()
+        public async Task<List<DriverProfile>> GetProfilesAsync(int limit = 1)
         {
             if (!IsLoggedIn) return new List<DriverProfile>();
 
@@ -82,7 +82,7 @@ namespace ToolVip.Services
                 var payload = new
                 {
                     token = _authToken,
-                    value = new { value = "1" }
+                    value = new { value = limit.ToString() }
                 };
 
                 var response = await _httpClient.PostAsJsonAsync($"/api/{role}/xin", payload);
