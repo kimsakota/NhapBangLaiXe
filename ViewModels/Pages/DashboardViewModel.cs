@@ -343,7 +343,7 @@ namespace ToolVip.ViewModels.Pages
                             System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "--- HOÀN THÀNH ---");
 
                     }, token);
-                }
+                } 
                 catch (Exception ex)
                 {
                     System.Windows.Application.Current.Dispatcher.Invoke(() => MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi"));
