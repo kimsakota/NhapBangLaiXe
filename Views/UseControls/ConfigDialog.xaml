@@ -61,7 +61,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="Vùng quét sẽ hoạt động khi nào?" Margin="0,0,0,5"/>
+                    <TextBlock Text="Hoạt động khi nào?" Margin="0,0,0,5"/>
                     <ComboBox SelectedIndex="{Binding SelectedZone.RunStrategy, Mode=TwoWay}">
                         <ComboBoxItem Content="Cùng lúc với nút Play (Song song)"/>
                         <ComboBoxItem Content="Sau khi chạy xong Record chính"/>
@@ -91,6 +91,7 @@
                                Appearance="{Binding IsRecordingFound, Converter={x:Static help:RunStatusToAppearanceConverter.Instance}}"
                                Icon="{Binding IsRecordingFound, Converter={x:Static help:RecordIconConverter.Instance}}"
                                Content="{Binding IsRecordingFound, Converter={x:Static help:RunStatusToStringConverter.Instance}}"
+                               MouseOverBackground="LightBlue"
                                Width="150"/>
 
                     <!-- [MỚI] Nút Xóa Record -->
@@ -98,10 +99,11 @@
                                Icon="{ui:SymbolIcon Delete24}"
                                Appearance="Danger"
                                ToolTip="Xóa bản ghi này"
+                               MouseOverBackground="LightBlue"
                                Margin="5,0,0,0"/>
 
                     <TextBlock VerticalAlignment="Center" Margin="15,0,0,0">
-                        <Run Text="Số bước đã lưu: "/>
+                        <Run Text="Số bước: "/>
                         <Run Text="{Binding SelectedZone.FoundActions.Count, Mode=OneWay}" FontWeight="Bold"/>
                     </TextBlock>
                 </StackPanel>
@@ -116,6 +118,7 @@
                                Appearance="{Binding IsRecordingNotFound, Converter={x:Static help:RunStatusToAppearanceConverter.Instance}}"
                                Icon="{Binding IsRecordingNotFound, Converter={x:Static help:RecordIconConverter.Instance}}"
                                Content="{Binding IsRecordingNotFound, Converter={x:Static help:RunStatusToStringConverter.Instance}}"
+                               MouseOverBackground="LightBlue"
                                Width="150"/>
 
                     <!-- [MỚI] Nút Xóa Record -->
@@ -123,10 +126,11 @@
                                Icon="{ui:SymbolIcon Delete24}"
                                Appearance="Danger"
                                ToolTip="Xóa bản ghi này"
+                               MouseOverBackground="LightBlue"
                                Margin="5,0,0,0"/>
 
                     <TextBlock VerticalAlignment="Center" Margin="15,0,0,0">
-                        <Run Text="Số bước đã lưu: "/>
+                        <Run Text="Số bước: "/>
                         <Run Text="{Binding SelectedZone.NotFoundActions.Count, Mode=OneWay}" FontWeight="Bold"/>
                     </TextBlock>
                 </StackPanel>

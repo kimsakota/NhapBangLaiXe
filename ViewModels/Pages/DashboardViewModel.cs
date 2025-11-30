@@ -162,26 +162,100 @@ namespace ToolVip.ViewModels.Pages
             };
         }
 
-        // ... [GIỮ NGUYÊN CÁC HÀM RecordAsync và PlayAsync] ...
+        // Hàm xử lý nút Thư mục (Open Record)
+        [RelayCommand]
+        private void OpenRecord()
+        {
+            if (IsBusy) return;
+
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Macro Files (*.json)|*.json|All files (*.*)|*.*",
+                Title = "Chọn file Macro để làm Record Chính"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    var filePath = dialog.FileName;
+                    var json = File.ReadAllText(filePath);
+                    var events = JsonSerializer.Deserialize<List<MacroEvent>>(json);
+
+                    if (events != null && events.Count > 0)
+                    {
+                        _dashboardMacroEvents = events;
+
+                        // [YÊU CẦU] Ghi đè dữ liệu mới vào file Record_MainLoop.json
+                        // Để lần sau mở app lên nó sẽ load file này
+                        _recordService.SaveRecording(_dashboardMacroEvents, _recordPath);
+
+                        MessageBox.Show($"Đã nạp file record mới thành công!\n- Nguồn: {Path.GetFileName(filePath)}\n- Số bước: {events.Count}\n- Đã lưu đè vào MainLoop.", "Thành công");
+                    }
+                    else
+                    {
+                        MessageBox.Show("File rỗng hoặc sai định dạng.", "Lỗi");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Lỗi đọc file: " + ex.Message, "Lỗi");
+                }
+            }
+        }
+
         [RelayCommand]
         private void RecordAsync()
         {
             if (IsPlaying) { MessageBox.Show("Đang chạy auto...", "Thông báo"); return; }
-            IsRecording = !IsRecording;
 
-            if (IsRecording) _recordService.StartRecording();
-            else
+            // Nếu đang ghi thì dừng lại (Logic nút bấm)
+            if (IsRecording)
             {
-                var recordedEvents = _recordService.StopRecordingAndGet();
-                _dashboardMacroEvents = new List<MacroEvent>(recordedEvents);
-
-                if (_autoViewModel.ScanZones.Count > 0)
-                {
-                    _recordService.SaveRecording(recordedEvents, _recordPath);
-                    MessageBox.Show($"Đã lưu Record Chính ({recordedEvents.Count} bước).", "Đã lưu");
-                }
-                else MessageBox.Show("Vui lòng tạo vùng quét trước (sang tab OCR để tạo).", "Lưu ý");
+                StopRecordingInternal();
+                return;
             }
+
+            // Bắt đầu ghi
+            IsRecording = true;
+            _recordService.StartRecording();
+
+            // [FIX] Chạy Task ngầm nhưng KHÔNG AWAIT để lệnh Command kết thúc ngay lập tức.
+            // Điều này giúp nút bấm không bị khóa và có thể nhận lệnh Click tiếp theo để dừng.
+            _ = Task.Run(async () =>
+            {
+                while (IsRecording)
+                {
+                    // Kiểm tra phím Ctrl + S
+                    bool isCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+                    bool isS = (GetAsyncKeyState(VK_S) & 0x8000) != 0;
+
+                    if (isCtrl && isS)
+                    {
+                        // Dừng ghi (Invoke về UI thread vì StopRecordingInternal có hiện MessageBox)
+                        System.Windows.Application.Current.Dispatcher.Invoke(StopRecordingInternal);
+                        break;
+                    }
+                    await Task.Delay(50); // Delay nhỏ để đỡ tốn CPU
+                }
+            });
+        }
+
+        // Hàm dừng ghi dùng chung cho cả Nút bấm và Phím tắt
+        private void StopRecordingInternal()
+        {
+            if (!IsRecording) return;
+            IsRecording = false;
+
+            var recordedEvents = _recordService.StopRecordingAndGet();
+            _dashboardMacroEvents = new List<MacroEvent>(recordedEvents);
+
+            if (_autoViewModel.ScanZones.Count > 0)
+            {
+                _recordService.SaveRecording(recordedEvents, _recordPath);
+                MessageBox.Show($"Đã lưu Record Chính ({recordedEvents.Count} bước).", "Đã lưu");
+            }
+            else MessageBox.Show("Vui lòng tạo vùng quét trước (sang tab OCR để tạo).", "Lưu ý");
         }
 
         [RelayCommand]
@@ -312,6 +386,22 @@ namespace ToolVip.ViewModels.Pages
                         {
                             if (!playTask.IsCompleted) { try { await playTask; } catch { } }
 
+                            // [FIX] XỬ LÝ TIMEOUT CHO CÁC VÙNG SONG SONG (PARALLEL ZONES)
+                            if (parallelZones.Any())
+                            {
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Hết thời gian (Timeout): Kiểm tra hành động Not Found...");
+                                foreach (var pZone in parallelZones)
+                                {
+                                    // Chỉ chạy nếu có khai báo NotFoundActions
+                                    if (pZone.NotFoundActions.Count > 0)
+                                    {
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy NotFound Action của vùng: {pZone.Keyword}");
+                                        await _recordService.PlayRecordingAsync(pZone.NotFoundActions, token);
+                                    }
+                                }
+                            }
+
+                            // Chạy tiếp các vùng tuần tự (Sequential Zones)
                             foreach (var targetZone in sequentialZones)
                             {
                                 System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Kiểm tra sau chạy: {targetZone.Keyword}...");

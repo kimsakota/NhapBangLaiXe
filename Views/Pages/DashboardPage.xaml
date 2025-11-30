@@ -34,6 +34,7 @@
                 </Grid.ColumnDefinitions>
                 <ui:Button Width="Auto" 
                            Grid.Column="0"
+                           Command="{Binding ViewModel.OpenRecordCommand}"
                            Foreground="Orange"
                            Icon="{ui:SymbolIcon Symbol=Folder24, FontSize=30, Filled=True}"
                            CornerRadius="10"

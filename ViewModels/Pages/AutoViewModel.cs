@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices; // [Thêm] Để dùng DllImport
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
@@ -22,6 +23,12 @@ namespace ToolVip.ViewModels.Pages
 {
     public partial class AutoViewModel : ObservableObject
     {
+        // [MỚI] Import API để bắt phím Ctrl + S
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+        private const int VK_CONTROL = 0x11;
+        private const int VK_S = 0x53;
+
         private readonly IContentDialogService _contentDialogService;
         private readonly IRecordService _recordService;
         private readonly IOcrService _ocrService;
@@ -86,6 +93,15 @@ namespace ToolVip.ViewModels.Pages
                 ScanZones.Add(new ScanZone
                 {
                     Keyword = "Không tìm thấy kết quả",
+                    X1 = 500,
+                    Y1 = 200,
+                    X2 = 700,
+                    Y2 = 250
+                });
+
+                ScanZones.Add(new ScanZone
+                {
+                    Keyword = "Hoàn thành tài liệu thành công",
                     X1 = 500,
                     Y1 = 200,
                     X2 = 700,
@@ -161,7 +177,11 @@ namespace ToolVip.ViewModels.Pages
                 DefaultButton = ContentDialogButton.Close,
             };
 
-            dialog.Closing += (s, e) => SaveZones();
+            dialog.Closing += (s, e) =>
+            {
+                SelectedZone = null;
+                SaveZones();
+            };
 
             _contentDialogService.ShowAsync(dialog, System.Threading.CancellationToken.None);
         }
@@ -303,6 +323,9 @@ namespace ToolVip.ViewModels.Pages
                 if (_recordService.IsRecording) return;
                 _recordService.StartRecording();
                 IsRecordingFound = true;
+
+                // [MỚI] Bắt đầu kiểm tra Ctrl + S
+                CheckStopKey(true);
             }
         }
 
@@ -326,7 +349,39 @@ namespace ToolVip.ViewModels.Pages
                 if (_recordService.IsRecording) return;
                 _recordService.StartRecording();
                 IsRecordingNotFound = true;
+
+                // [MỚI] Bắt đầu kiểm tra Ctrl + S
+                CheckStopKey(false);
             }
+        }
+
+        // [MỚI] Hàm chạy ngầm để kiểm tra phím Ctrl + S
+        private void CheckStopKey(bool isFoundRecording)
+        {
+            _ = Task.Run(async () =>
+            {
+                while (true)
+                {
+                    // Kiểm tra xem còn đang record không (nếu người dùng bấm nút Dừng thì thoát loop)
+                    bool recording = isFoundRecording ? IsRecordingFound : IsRecordingNotFound;
+                    if (!recording) break;
+
+                    bool isCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
+                    bool isS = (GetAsyncKeyState(VK_S) & 0x8000) != 0;
+
+                    if (isCtrl && isS)
+                    {
+                        // Gọi lại ToggleRecord... trên UI thread để dừng
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            if (isFoundRecording) ToggleRecordFound();
+                            else ToggleRecordNotFound();
+                        });
+                        break;
+                    }
+                    await Task.Delay(50);
+                }
+            });
         }
 
         // [MỚI] Lệnh xóa Record Found
