@@ -106,7 +106,9 @@ namespace ToolVip.Services
         {
             // 1. Thêm vào file Saved
             var savedList = LoadSavedData();
-            savedList.Add(profile);
+
+            //savedList.Add(profile);
+            savedList.Insert(0, profile);
             SaveFile(_savedPath, savedList);
 
             // 2. Xóa khỏi file Pending

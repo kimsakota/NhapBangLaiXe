@@ -15,6 +15,7 @@ using Wpf.Ui;
 using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
 
 namespace ToolVip.ViewModels.Pages
 {
@@ -266,10 +267,22 @@ namespace ToolVip.ViewModels.Pages
 
                 try
                 {
-                    // [MỚI] Vòng lặp chính - Lặp lại cho đến khi bấm Dừng hoặc hết danh sách
+                    // Vòng lặp chính - Lặp lại cho đến khi bấm Dừng hoặc hết danh sách
                     int currentLoop = 0;
                     while (!token.IsCancellationRequested)
                     {
+                        //  KIỂM TRA MẠNG TRƯỚC KHI CHẠY VÒNG LẶP MỚI ===
+                        bool isConnected = await _apiService.CheckConnectionAsync();
+                        if (!isConnected)
+                        {
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            {
+                                _autoViewModel.LogText = "!!! MẤT KẾT NỐI MẠNG - DỪNG AUTO !!!";
+                                MessageBox.Show("Đã mất kết nối tới Server/Internet.\nAuto sẽ dừng lại để đảm bảo an toàn.", "Mất mạng", MessageBoxButton.OK, MessageBoxImage.Error);
+                            });
+                            break; // Thoát vòng lặp ngay lập tức
+                        }
+
                         // [QUAN TRỌNG] Kiểm tra danh sách có còn không
                         int remainingCount = 0;
                         System.Windows.Application.Current.Dispatcher.Invoke(() => remainingCount = Profiles.Count);

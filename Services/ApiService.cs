@@ -14,6 +14,8 @@ namespace ToolVip.Services
         Task<List<DriverProfile>> GetProfilesAsync(int limit = 1);
         Task<bool> ImportProfileAsync(DriverProfile profile);
         Task<bool> ConfirmImportedAsync(string licensePlate);
+
+        Task<bool> CheckConnectionAsync();
     }
 
     public class ApiService : IApiService
@@ -149,6 +151,28 @@ namespace ToolVip.Services
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Confirm Import Error: {ex.Message}");
+                return false;
+            }
+        }
+
+        public async Task<bool> CheckConnectionAsync()
+        {
+            try
+            {
+                // Cách đơn giản nhất: Gửi 1 request nhẹ (HEAD) tới Base URL
+                // Nếu Server phản hồi (dù là lỗi 401/404...) thì tức là có mạng
+                using var request = new HttpRequestMessage(HttpMethod.Head, "");
+
+                // Timeout ngắn (2 giây) để phát hiện mất mạng nhanh
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+
+                var response = await _httpClient.SendAsync(request, cts.Token);
+
+                // Chỉ cần không ném Exception là có mạng
+                return true;
+            }
+            catch
+            {
                 return false;
             }
         }
