@@ -63,25 +63,27 @@ namespace ToolVip.ViewModels.Pages
         {
             _contentDialogService = contentDialogService;
             // Dữ liệu mẫu để test giao diện
-            ScanZones.Add(new ScanZone { Keyword = "Lưu lại", X1 = 100, Y1 = 200, X2 = 300, Y2 = 250, IsExactMatch = true });
+            ScanZones.Add(new ScanZone { Keyword = "Hoàn thành", X1 = 100, Y1 = 200, X2 = 300, Y2 = 250, IsExactMatch = true });
             ScanZones.Add(new ScanZone { Keyword = "Xác nhận", X1 = 500, Y1 = 200, X2 = 700, Y2 = 250 });
         }
 
-        partial async Task OnSelectedZoneChanged(ScanZone? value)
+        partial void OnSelectedZoneChanged(ScanZone? value)
         {
             if (SelectedZone == null) return;
-            var dialogHost = _contentDialogService.GetDialogHost();
+            var dialogControl = new ConfigDialog(this);
             
             var dialog = new ContentDialog
             {
-                Title = "Chi tiết hồ sơ",
-                Content = new ConfigDialog(),
+                Title = "Cấu hình",
+                Content = dialogControl,
                 //PrimaryButtonText = "Lưu & Chuyển",
                 CloseButtonText = "Đóng",
                 DefaultButton = ContentDialogButton.Close,
             };
 
-            await dialog.ShowAsync();
+            _contentDialogService.ShowAsync(dialog, CancellationToken.None);
+
+
         }
 
         // Các Command (Logic sẽ làm sau)
