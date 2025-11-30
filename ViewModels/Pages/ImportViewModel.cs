@@ -10,12 +10,11 @@ namespace ToolVip.ViewModels.Pages
     public partial class ImportViewModel : ObservableObject
     {
         private readonly IDataService _dataService;
-        private readonly IApiService _apiService; // [MỚI]
+        private readonly IApiService _apiService;
 
         [ObservableProperty]
         private ObservableCollection<DriverProfile> _importedProfiles = new();
 
-        // [MỚI] Các thuộc tính cho Login
         [ObservableProperty] private string _username = "0384022083";
         [ObservableProperty] private string _password = "2083";
         [ObservableProperty] private bool _isLoggedIn = false;
@@ -25,9 +24,20 @@ namespace ToolVip.ViewModels.Pages
         {
             _dataService = dataService;
             _apiService = apiService;
+
+            // Tự động load lại dữ liệu temp nếu có (phòng trường hợp crash)
+            LoadTempData();
         }
 
-        // [MỚI] Lệnh Đăng nhập
+        private void LoadTempData()
+        {
+            var tempData = _dataService.LoadTempData();
+            if (tempData != null && tempData.Count > 0)
+            {
+                ImportedProfiles = new ObservableCollection<DriverProfile>(tempData);
+            }
+        }
+
         [RelayCommand]
         private async Task LoginAsync()
         {
@@ -52,7 +62,6 @@ namespace ToolVip.ViewModels.Pages
             }
         }
 
-        // [MỚI] Lệnh lấy dữ liệu từ API (/api/staff/xin)
         [RelayCommand]
         private async Task GetDataFromApiAsync()
         {
@@ -73,7 +82,11 @@ namespace ToolVip.ViewModels.Pages
                 {
                     ImportedProfiles.Add(item);
                 }
-                MessageBox.Show($"Đã lấy được {data.Count} hồ sơ từ Server.", "Thành công");
+
+                // [QUAN TRỌNG] Lưu ngay vào Temp sau khi lấy về để tránh mất
+                _dataService.SaveToTemp(ImportedProfiles.ToList());
+
+                MessageBox.Show($"Đã lấy được {data.Count} hồ sơ từ Server (Đã lưu Temp).", "Thành công");
             }
             else
             {
@@ -81,7 +94,6 @@ namespace ToolVip.ViewModels.Pages
             }
         }
 
-        // [MỚI] Gửi dữ liệu lên API (/api/staff/nhap)
         [RelayCommand]
         private async Task UploadToApiAsync()
         {
@@ -101,7 +113,6 @@ namespace ToolVip.ViewModels.Pages
             int successCount = 0;
             int failCount = 0;
 
-            // Gửi từng hồ sơ (hoặc sửa ApiService để gửi List nếu API hỗ trợ bulk insert)
             foreach (var profile in ImportedProfiles.ToList())
             {
                 bool result = await _apiService.ImportProfileAsync(profile);
@@ -113,8 +124,6 @@ namespace ToolVip.ViewModels.Pages
             MessageBox.Show($"Đã gửi xong.\n- Thành công: {successCount}\n- Thất bại: {failCount}", "Kết quả");
         }
 
-
-        // [GIỮ NGUYÊN] Logic Paste từ Clipboard cũ
         [RelayCommand]
         private void OnPasteFromClipboard()
         {
@@ -167,7 +176,12 @@ namespace ToolVip.ViewModels.Pages
                     catch { }
                 }
 
-                if (ImportedProfiles.Count == 0)
+                // [QUAN TRỌNG] Lưu ngay vào Temp sau khi Paste
+                if (ImportedProfiles.Count > 0)
+                {
+                    _dataService.SaveToTemp(ImportedProfiles.ToList());
+                }
+                else
                 {
                     MessageBox.Show("Không lấy được dữ liệu nào. Vui lòng kiểm tra vùng copy có đủ cột không.", "Thông báo");
                 }
@@ -187,6 +201,8 @@ namespace ToolVip.ViewModels.Pages
                 if (result == System.Windows.MessageBoxResult.Yes)
                 {
                     ImportedProfiles.Clear();
+                    // Lưu danh sách rỗng vào Temp (coi như xóa)
+                    _dataService.SaveToTemp(new List<DriverProfile>());
                 }
             }
         }
@@ -195,9 +211,14 @@ namespace ToolVip.ViewModels.Pages
         private void OnSaveToDatabase()
         {
             if (ImportedProfiles.Count == 0) return;
+
+            // Lưu vào Pending chính thức
             _dataService.AddToPending(ImportedProfiles.ToList());
+
             MessageBox.Show($"Đã lưu {ImportedProfiles.Count} hồ sơ vào hệ thống (Local)!", "Thành công");
             ImportedProfiles.Clear();
+
+            // Temp import đã được xử lý trong AddToPending (xóa file temp)
         }
 
         private string GetPart(string[] parts, int index, string defaultValue = "")
