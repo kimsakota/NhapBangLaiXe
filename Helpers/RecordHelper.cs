@@ -18,10 +18,22 @@ namespace ToolVip.Helpers
             public int Bottom;      // Y bên dưới
         }
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+
         // Hàm lấy tọa độ cửa sổ
         [DllImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
+
+        // Hàm lấy vị trí chuột trên màn hình
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetCursorPos(out POINT lpPoint);
     }
 
 

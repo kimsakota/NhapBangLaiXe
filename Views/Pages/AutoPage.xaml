@@ -6,6 +6,7 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:local="clr-namespace:ToolVip.Views.Pages"
       xmlns:models="clr-namespace:ToolVip.Models"
+      xmlns:help="clr-namespace:ToolVip.Helpers"
       Title="AutoPage"
       d:DataContext="{d:DesignInstance local:AutoPage, IsDesignTimeCreatable=False}"
       d:DesignHeight="700" d:DesignWidth="900"
@@ -19,7 +20,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
-            <!-- Log area -->
         </Grid.RowDefinitions>
 
         <!-- === CỘT TRÁI: DANH SÁCH VÙNG QUÉT === -->
@@ -27,13 +27,13 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height=".5*"/>
+                <RowDefinition Height="2*"/>
+                <RowDefinition Height="5"/>
+                <!-- GridSplitter giả -->
+                <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
 
             <ui:TextBlock Text="Vùng Quét OCR" FontTypography="Subtitle" Margin="0,0,0,10"/>
-
-            
 
             <!-- List Vùng -->
             <ui:ListView Grid.Row="2"
@@ -41,49 +41,67 @@
                          SelectedItem="{Binding ViewModel.SelectedZone}" SelectionMode="Single">
                 <ui:ListView.ItemTemplate>
                     <DataTemplate DataType="{x:Type models:ScanZone}">
-                        <Grid>
+                        <Grid Height="35">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
-                            <ui:SymbolIcon Symbol="ScanObject24" Margin="0,0,10,0" Foreground="CornflowerBlue"/>
-                            <StackPanel Grid.Column="1">
-                                <TextBlock Text="{Binding Keyword}" FontWeight="Bold"/>
-                                <TextBlock Text="{Binding CoordinateString}" FontSize="11" Foreground="Gray"/>
+                            <!-- Icon -->
+                            <ui:SymbolIcon Symbol="ScanObject24" 
+                                           Margin="0,0,10,0" 
+                                           FontSize="30"
+                                           Foreground="CornflowerBlue" 
+                                           VerticalAlignment="Center"/>
+
+                            <!-- Nội dung -->
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <!-- Chỉ giữ lại Từ khóa, xóa dòng Tọa độ -->
+                                <TextBlock Text="{Binding Keyword}" 
+                                           FontWeight="SemiBold"
+                                           FontSize="17"/>
                             </StackPanel>
                         </Grid>
                     </DataTemplate>
                 </ui:ListView.ItemTemplate>
             </ui:ListView>
-            <!-- Log -->
-            <Border Grid.Row="3" Background="#F5F5F5" CornerRadius="4" Padding="10">
-                <TextBlock Text="{Binding ViewModel.LogText}" TextTrimming="CharacterEllipsis" 
-                           VerticalAlignment="Center" FontFamily="Consolas"/>
-            </Border>
+
+            <!-- Log MỚI -->
+            <GroupBox Grid.Row="4" Header="Nhật Ký (Log)" Margin="0,10,0,0">
+                <ui:ListView ItemsSource="{Binding ViewModel.Logs}" 
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ui:ListView.ItemTemplate>
+                        <DataTemplate DataType="{x:Type models:LogEntry}">
+                            <TextBlock Text="{Binding FullMessage}" 
+                                       Foreground="{Binding Color}" 
+                                       FontFamily="Consolas" 
+                                       TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ui:ListView.ItemTemplate>
+                </ui:ListView>
+            </GroupBox>
         </Grid>
 
-        <!-- === DÒNG DƯỚI: ĐIỀU KHIỂN & LOG === -->
+        <!-- === DÒNG DƯỚI: ĐIỀU KHIỂN MỚI === -->
         <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,20,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Nút Start -->
-            <ui:Button Command="{Binding ViewModel.ToggleRunCommand}" 
-                       Icon="{ui:SymbolIcon Play24}" 
-                       Content="{Binding ViewModel.IsRunning, Converter={x:Static local:RunStateToStringConverter.Instance}}"
-                       Appearance="{Binding ViewModel.IsRunning, Converter={x:Static local:RunStateToColorConverter.Instance}}"
-                       Height="40" FontSize="16" Padding="15,0"/>
+            <!-- Nút Test Tất Cả -->
+            <ui:Button Command="{Binding ViewModel.TestAllZonesCommand}" 
+                       Icon="{ui:SymbolIcon PlayCircle24}" 
+                       Content="Kiểm Tra Tất Cả Vùng (Test)"
+                       Appearance="Primary"
+                       IsEnabled="{Binding ViewModel.IsTesting, Converter={x:Static help:BooleanToConverter.Instance}}"
+                       HorizontalAlignment="Left"
+                       Height="40" FontSize="16" Padding="20,0"/>
 
-            
-
-            <!-- Options -->
-            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                <CheckBox Content="Lặp lại (Loop)" IsChecked="{Binding ViewModel.IsLoop}" Margin="0,0,10,0"/>
-                <ui:Button Icon="{ui:SymbolIcon Eraser24}" Command="{Binding ViewModel.ClearLogCommand}" ToolTip="Xóa Log"/>
-            </StackPanel>
+            <!-- Nút Xóa Log -->
+            <ui:Button Grid.Column="1" 
+                       Icon="{ui:SymbolIcon Eraser24}" 
+                       Content="Xóa Log"
+                       Command="{Binding ViewModel.ClearLogCommand}"/>
         </Grid>
     </Grid>
 </Page>

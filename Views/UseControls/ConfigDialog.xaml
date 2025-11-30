@@ -4,11 +4,133 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-             xmlns:local="clr-namespace:ToolVip.Views.UseControls" xmlns:pages="clr-namespace:ToolVip.ViewModels.Pages" d:DataContext="{d:DesignInstance Type=pages:AutoViewModel}"
+             xmlns:local="clr-namespace:ToolVip.Views.UseControls" 
+             xmlns:pages="clr-namespace:ToolVip.ViewModels.Pages" 
+             xmlns:help="clr-namespace:ToolVip.Helpers"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib"
+             d:DataContext="{d:DesignInstance Type=pages:AutoViewModel}"
              mc:Ignorable="d"  
              ScrollViewer.CanContentScroll="False"
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-        
+             d:DesignHeight="600" d:DesignWidth="600">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Phần 1: Tọa độ -->
+        <GroupBox Header="Cấu hình Vùng Quét (Alt+1: Điểm 1, Alt+2: Điểm 2)" Margin="0,0,0,15">
+            <Grid Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Góc Trái-Trên (X1, Y1)" FontWeight="SemiBold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                        <ui:TextBox x:Name="TxtX1" Text="{Binding EditX1, Mode=TwoWay}" Width="80" Margin="0,0,5,0" PlaceholderText="X1" IsReadOnly="True"/>
+                        <ui:TextBox Text="{Binding EditY1, Mode=TwoWay}" Width="80" PlaceholderText="Y1" IsReadOnly="True"/>
+                    </StackPanel>
+                    <TextBlock Text="Ấn Alt + 1 để lấy tọa độ chuột" FontSize="10" FontStyle="Italic" Foreground="Gray" Margin="0,2,0,0"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Góc Phải-Dưới (X2, Y2)" FontWeight="SemiBold"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                        <ui:TextBox Text="{Binding EditX2, Mode=TwoWay}" Width="80" Margin="0,0,5,0" PlaceholderText="X2" IsReadOnly="True"/>
+                        <ui:TextBox Text="{Binding EditY2, Mode=TwoWay}" Width="80" PlaceholderText="Y2" IsReadOnly="True"/>
+                    </StackPanel>
+                    <TextBlock Text="Ấn Alt + 2 để lấy tọa độ chuột" FontSize="10" FontStyle="Italic" Foreground="Gray" Margin="0,2,0,0"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- Phần 2: Cấu hình Thời gian & Chiến thuật -->
+        <GroupBox Grid.Row="1" Header="Thiết lập Chạy" Margin="0,0,0,15">
+            <Grid Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Vùng quét sẽ hoạt động khi nào?" Margin="0,0,0,5"/>
+                    <ComboBox SelectedIndex="{Binding SelectedZone.RunStrategy, Mode=TwoWay}">
+                        <ComboBoxItem Content="Cùng lúc với nút Play (Song song)"/>
+                        <ComboBoxItem Content="Sau khi chạy xong Record chính"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Thời gian quét (Timeout)" Margin="0,0,0,5"/>
+                    <ComboBox SelectedValue="{Binding SelectedZone.ScanTimeout, Mode=TwoWay}" 
+                              SelectedValuePath="Tag">
+                        <ComboBoxItem Content="Không giới hạn (Theo Record chính)" Tag="0"/>
+                        <ComboBoxItem Content="1 giây" Tag="1"/>
+                        <ComboBoxItem Content="3 giây" Tag="3"/>
+                        <ComboBoxItem Content="5 giây" Tag="5"/>
+                        <ComboBoxItem Content="10 giây" Tag="10"/>
+                        <ComboBoxItem Content="30 giây" Tag="30"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- Phần 3: Hành động Found -->
+        <GroupBox Grid.Row="2" Header="Khi TÌM THẤY từ khóa (Found)" Margin="0,0,0,15" BorderBrush="Green">
+            <StackPanel Margin="5">
+                <StackPanel Orientation="Horizontal">
+                    <ui:Button Command="{Binding ToggleRecordFoundCommand}" 
+                               Appearance="{Binding IsRecordingFound, Converter={x:Static help:RunStatusToAppearanceConverter.Instance}}"
+                               Icon="{Binding IsRecordingFound, Converter={x:Static help:RecordIconConverter.Instance}}"
+                               Content="{Binding IsRecordingFound, Converter={x:Static help:RunStatusToStringConverter.Instance}}"
+                               Width="150"/>
+
+                    <!-- [MỚI] Nút Xóa Record -->
+                    <ui:Button Command="{Binding DeleteRecordFoundCommand}"
+                               Icon="{ui:SymbolIcon Delete24}"
+                               Appearance="Danger"
+                               ToolTip="Xóa bản ghi này"
+                               Margin="5,0,0,0"/>
+
+                    <TextBlock VerticalAlignment="Center" Margin="15,0,0,0">
+                        <Run Text="Số bước đã lưu: "/>
+                        <Run Text="{Binding SelectedZone.FoundActions.Count, Mode=OneWay}" FontWeight="Bold"/>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Phần 4: Hành động Not Found -->
+        <GroupBox Grid.Row="3" Header="Khi KHÔNG thấy từ khóa (Not Found)" Margin="0,0,0,15" BorderBrush="OrangeRed">
+            <StackPanel Margin="5">
+                <StackPanel Orientation="Horizontal">
+                    <ui:Button Command="{Binding ToggleRecordNotFoundCommand}" 
+                               Appearance="{Binding IsRecordingNotFound, Converter={x:Static help:RunStatusToAppearanceConverter.Instance}}"
+                               Icon="{Binding IsRecordingNotFound, Converter={x:Static help:RecordIconConverter.Instance}}"
+                               Content="{Binding IsRecordingNotFound, Converter={x:Static help:RunStatusToStringConverter.Instance}}"
+                               Width="150"/>
+
+                    <!-- [MỚI] Nút Xóa Record -->
+                    <ui:Button Command="{Binding DeleteRecordNotFoundCommand}"
+                               Icon="{ui:SymbolIcon Delete24}"
+                               Appearance="Danger"
+                               ToolTip="Xóa bản ghi này"
+                               Margin="5,0,0,0"/>
+
+                    <TextBlock VerticalAlignment="Center" Margin="15,0,0,0">
+                        <Run Text="Số bước đã lưu: "/>
+                        <Run Text="{Binding SelectedZone.NotFoundActions.Count, Mode=OneWay}" FontWeight="Bold"/>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
     </Grid>
 </UserControl>

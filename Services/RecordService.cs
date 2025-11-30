@@ -7,16 +7,14 @@ using ToolVip.Models;
 
 namespace ToolVip.Services
 {
-
     public interface IRecordService
     {
         void StartRecording();
-        void StopRecording();
-        Task PlayRecordingAsync(CancellationToken token);
+        List<MacroEvent> StopRecordingAndGet();
+        Task PlayRecordingAsync(List<MacroEvent> events, CancellationToken token);
+        void SaveRecording(List<MacroEvent> events, string filePath);
         bool IsRecording { get; }
     }
-
-
 
     public class RecordService : IRecordService
     {
@@ -26,11 +24,10 @@ namespace ToolVip.Services
 
         private IntPtr _hookId = IntPtr.Zero;
         private LowLevelMouseProc _proc;
-        private readonly string _filePath;
 
-        // Cấu hình
-        private const int MIN_DELAY_MS = 25; // Chống click quá nhanh
-        private const int MIN_MOUSE_MOVE_DISTANCE = 5; // Tối ưu file ghi
+        // Giảm delay tối thiểu xuống 1ms để chuyển động mượt và giống thực tế nhất
+        private const int MIN_DELAY_MS = 1;
+        private const int MIN_MOUSE_MOVE_DISTANCE = 0; // Ghi lại tất cả chuyển động nhỏ nhất
 
         private int _lastX = 0;
         private int _lastY = 0;
@@ -39,11 +36,9 @@ namespace ToolVip.Services
 
         public RecordService()
         {
-            _filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "macro_record.json");
             _proc = HookCallback;
         }
 
-        // --- GHI (RECORD) ---
         public void StartRecording()
         {
             _events.Clear();
@@ -53,27 +48,44 @@ namespace ToolVip.Services
             IsRecording = true;
         }
 
-        public void StopRecording()
+        public List<MacroEvent> StopRecordingAndGet()
         {
-            if (!IsRecording) return;
+            if (!IsRecording) return new List<MacroEvent>();
 
             UnhookWindowsHookEx(_hookId);
             IsRecording = false;
             _stopwatch.Stop();
 
             RemoveLastClick();
-            NormalizeEvents();
+            // Bỏ NormalizeEvents hoặc giảm thiểu can thiệp để giữ độ chính xác của thao tác
+            // NormalizeEvents(); 
 
+            return new List<MacroEvent>(_events);
+        }
+
+        public void SaveRecording(List<MacroEvent> events, string filePath)
+        {
             try
             {
-                var json = JsonSerializer.Serialize(_events, new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(_filePath, json);
+                var dir = Path.GetDirectoryName(filePath);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                var json = JsonSerializer.Serialize(events, options);
+                File.WriteAllText(filePath, json);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Lỗi lưu file macro: {ex.Message}");
+            }
         }
 
         private void RemoveLastClick()
         {
+            // Xóa sự kiện click Stop
             if (_events.Count > 0 && _events.Last().Type == MacroEventType.LeftUp)
             {
                 _events.RemoveAt(_events.Count - 1);
@@ -82,52 +94,21 @@ namespace ToolVip.Services
             }
         }
 
-        private void NormalizeEvents()
+        public async Task PlayRecordingAsync(List<MacroEvent> events, CancellationToken token)
         {
-            if (_events.Count == 0) return;
-            for (int i = 0; i < _events.Count; i++)
-            {
-                var evt = _events[i];
-                if ((evt.Type != MacroEventType.MouseMove && evt.Type != MacroEventType.Scroll)
-                     && evt.Delay < MIN_DELAY_MS)
-                {
-                    evt.Delay = MIN_DELAY_MS;
-                }
-            }
-        }
-
-        // --- PHÁT LẠI (PLAY) ---
-        public async Task PlayRecordingAsync(CancellationToken token)
-        {
-            #region hihi
-            if (!File.Exists(_filePath)) return;
-
-            // 1. Luôn tạo danh sách sự kiện MỚI (Local variable) để không dính dáng đến lần chạy trước
-            List<MacroEvent>? events;
-            try
-            {
-                var json = await File.ReadAllTextAsync(_filePath, token);
-                events = JsonSerializer.Deserialize<List<MacroEvent>>(json);
-            }
-            catch { return; }
-
             if (events == null || events.Count == 0) return;
 
-            // 2. Tạo Stopwatch MỚI -> Thời gian bắt đầu tính từ 0
             var stopwatch = Stopwatch.StartNew();
             double accumulatedTime = 0;
 
-            // 3. Luôn chạy vòng lặp từ đầu danh sách (foreach hoặc for từ 0)
             foreach (var evt in events)
             {
-                // Kiểm tra Ctrl + S để dừng
                 CheckStopHotkey();
-
                 if (token.IsCancellationRequested) break;
 
                 accumulatedTime += evt.Delay;
 
-                // Vòng lặp chờ (Wait Loop)
+                // Cơ chế chờ chính xác (High precision wait)
                 while (true)
                 {
                     CheckStopHotkey();
@@ -138,31 +119,34 @@ namespace ToolVip.Services
 
                     if (remaining <= 0) break;
 
-                    if (remaining > 20) await Task.Delay(10, token);
+                    // Nếu còn nhiều thời gian thì Delay, ít thì SpinWait để chính xác
+                    if (remaining > 15) await Task.Delay(10, token);
                     else Thread.SpinWait(100);
                 }
 
-                // Thực hiện hành động chuột
+                // 1. Di chuyển chuột (SetCursorPos di chuyển chuột tuyệt đối)
                 SetCursorPos(evt.X, evt.Y);
-                PerformMouseAction(evt);
+
+                // 2. Nếu là Click, thực hiện lệnh click
+                if (evt.Type != MacroEventType.MouseMove)
+                {
+                    // Delay cực ngắn để đảm bảo tọa độ đã được cập nhật trước khi click
+                    await Task.Delay(1, token);
+                    PerformMouseAction(evt);
+                }
             }
-
             stopwatch.Stop();
-#endregion Hihi
-
         }
 
-        // Hàm kiểm tra phím tắt Ctrl + S
         private void CheckStopHotkey()
         {
-            // Kiểm tra trạng thái phím (Bit cao nhất 0x8000 nghĩa là đang nhấn)
+            // Kiểm tra phím Ctrl + S
             bool isCtrlDown = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
             bool isSDown = (GetAsyncKeyState(VK_S) & 0x8000) != 0;
 
             if (isCtrlDown && isSDown)
             {
-                // Ném lỗi Hủy để thoát khỏi vòng lặp Play và báo cho ViewModel biết
-                throw new OperationCanceledException("Người dùng bấm Ctrl + S");
+                throw new OperationCanceledException("User stop by Ctrl+S");
             }
         }
 
@@ -176,13 +160,12 @@ namespace ToolVip.Services
                 case MacroEventType.RightDown: flags = MOUSEEVENTF_RIGHTDOWN; break;
                 case MacroEventType.RightUp: flags = MOUSEEVENTF_RIGHTUP; break;
                 case MacroEventType.Scroll: flags = MOUSEEVENTF_WHEEL; break;
-                case MacroEventType.MouseMove: flags = MOUSEEVENTF_MOVE; break;
+                // MouseMove đã được xử lý bởi SetCursorPos ở ngoài
+                case MacroEventType.MouseMove: return;
             }
 
-            if (evt.Type != MacroEventType.MouseMove)
-            {
-                mouse_event(flags, 0, 0, evt.MouseData, 0);
-            }
+            // Gửi lệnh click
+            mouse_event(flags, 0, 0, evt.MouseData, 0);
         }
 
         // --- HOOK CALLBACK ---
@@ -191,7 +174,7 @@ namespace ToolVip.Services
             if (nCode >= 0 && IsRecording)
             {
                 int msg = wParam.ToInt32();
-
+                // Chỉ bắt các sự kiện chuột cơ bản
                 if (msg == WM_LBUTTONDOWN || msg == WM_LBUTTONUP ||
                     msg == WM_RBUTTONDOWN || msg == WM_RBUTTONUP ||
                     msg == WM_MOUSEWHEEL || msg == WM_MOUSEMOVE)
@@ -201,13 +184,11 @@ namespace ToolVip.Services
                     long currentTime = _stopwatch.ElapsedMilliseconds;
                     int delay = (int)(currentTime - _lastEventTime);
 
+                    // Bỏ qua lọc khoảng cách để ghi lại chuyển động mượt mà hơn
                     if (msg == WM_MOUSEMOVE)
                     {
-                        int dist = Math.Abs(hookStruct.pt.x - _lastX) + Math.Abs(hookStruct.pt.y - _lastY);
-                        if (dist < MIN_MOUSE_MOVE_DISTANCE)
-                        {
-                            return CallNextHookEx(_hookId, nCode, wParam, lParam);
-                        }
+                        // Lưu ý: Nếu ghi quá chi tiết file sẽ nặng, nhưng sẽ mượt
+                        // Nếu muốn tối ưu có thể bật lại lọc khoảng cách nhỏ
                     }
 
                     _lastEventTime = currentTime;
@@ -252,8 +233,6 @@ namespace ToolVip.Services
         [DllImport("kernel32.dll")] private static extern IntPtr GetModuleHandle(string lpModuleName);
         [DllImport("user32.dll")] private static extern void mouse_event(int dwFlags, int dx, int dy, int dwData, int dwExtraInfo);
         [DllImport("user32.dll")] private static extern bool SetCursorPos(int X, int Y);
-
-        // [MỚI] API để kiểm tra phím tắt
         [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
 
         private const int WH_MOUSE_LL = 14;
@@ -271,9 +250,8 @@ namespace ToolVip.Services
         private const int MOUSEEVENTF_RIGHTUP = 0x10;
         private const int MOUSEEVENTF_WHEEL = 0x0800;
 
-        // [MỚI] Mã phím
         private const int VK_CONTROL = 0x11;
-        private const int VK_S = 0x53; // Phím S
+        private const int VK_S = 0x53;
 
         [StructLayout(LayoutKind.Sequential)] private struct POINT { public int x; public int y; }
         [StructLayout(LayoutKind.Sequential)]
