@@ -10,15 +10,111 @@ namespace ToolVip.ViewModels.Pages
     public partial class ImportViewModel : ObservableObject
     {
         private readonly IDataService _dataService;
+        private readonly IApiService _apiService; // [MỚI]
 
         [ObservableProperty]
         private ObservableCollection<DriverProfile> _importedProfiles = new();
 
-        public ImportViewModel(IDataService dataService)
+        // [MỚI] Các thuộc tính cho Login
+        [ObservableProperty] private string _username = "0384022083";
+        [ObservableProperty] private string _password = "2083";
+        [ObservableProperty] private bool _isLoggedIn = false;
+        [ObservableProperty] private bool _isBusy = false;
+
+        public ImportViewModel(IDataService dataService, IApiService apiService)
         {
             _dataService = dataService;
+            _apiService = apiService;
         }
 
+        // [MỚI] Lệnh Đăng nhập
+        [RelayCommand]
+        private async Task LoginAsync()
+        {
+            if (string.IsNullOrWhiteSpace(Username) || string.IsNullOrWhiteSpace(Password))
+            {
+                MessageBox.Show("Vui lòng nhập tài khoản và mật khẩu!", "Thông báo");
+                return;
+            }
+
+            IsBusy = true;
+            bool success = await _apiService.LoginAsync(Username, Password);
+            IsBusy = false;
+
+            if (success)
+            {
+                IsLoggedIn = true;
+                MessageBox.Show("Đăng nhập thành công!", "Thông báo");
+            }
+            else
+            {
+                MessageBox.Show("Đăng nhập thất bại. Vui lòng kiểm tra lại!", "Lỗi");
+            }
+        }
+
+        // [MỚI] Lệnh lấy dữ liệu từ API (/api/staff/xin)
+        [RelayCommand]
+        private async Task GetDataFromApiAsync()
+        {
+            if (!IsLoggedIn)
+            {
+                MessageBox.Show("Bạn chưa đăng nhập API.", "Cảnh báo");
+                return;
+            }
+
+            IsBusy = true;
+            var data = await _apiService.GetProfilesAsync();
+            IsBusy = false;
+
+            if (data != null && data.Count > 0)
+            {
+                ImportedProfiles.Clear();
+                foreach (var item in data)
+                {
+                    ImportedProfiles.Add(item);
+                }
+                MessageBox.Show($"Đã lấy được {data.Count} hồ sơ từ Server.", "Thành công");
+            }
+            else
+            {
+                MessageBox.Show("Không có dữ liệu mới từ Server.", "Thông báo");
+            }
+        }
+
+        // [MỚI] Gửi dữ liệu lên API (/api/staff/nhap)
+        [RelayCommand]
+        private async Task UploadToApiAsync()
+        {
+            if (!IsLoggedIn)
+            {
+                MessageBox.Show("Bạn chưa đăng nhập API.", "Cảnh báo");
+                return;
+            }
+
+            if (ImportedProfiles.Count == 0)
+            {
+                MessageBox.Show("Danh sách trống.", "Cảnh báo");
+                return;
+            }
+
+            IsBusy = true;
+            int successCount = 0;
+            int failCount = 0;
+
+            // Gửi từng hồ sơ (hoặc sửa ApiService để gửi List nếu API hỗ trợ bulk insert)
+            foreach (var profile in ImportedProfiles.ToList())
+            {
+                bool result = await _apiService.ImportProfileAsync(profile);
+                if (result) successCount++;
+                else failCount++;
+            }
+            IsBusy = false;
+
+            MessageBox.Show($"Đã gửi xong.\n- Thành công: {successCount}\n- Thất bại: {failCount}", "Kết quả");
+        }
+
+
+        // [GIỮ NGUYÊN] Logic Paste từ Clipboard cũ
         [RelayCommand]
         private void OnPasteFromClipboard()
         {
@@ -31,10 +127,8 @@ namespace ToolVip.ViewModels.Pages
                     return;
                 }
 
-                // Tách dòng
                 var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-                // Nếu chỉ có 1 dòng (tiêu đề) thì báo lỗi
                 if (lines.Length <= 1)
                 {
                     MessageBox.Show("Dữ liệu quá ít (chỉ có tiêu đề hoặc trống).", "Lỗi");
@@ -43,7 +137,6 @@ namespace ToolVip.ViewModels.Pages
 
                 ImportedProfiles.Clear();
 
-                // Vòng lặp bắt đầu từ i = 1 (BỎ QUA DÒNG TIÊU ĐỀ)
                 for (int i = 1; i < lines.Length; i++)
                 {
                     var line = lines[i];
@@ -53,46 +146,19 @@ namespace ToolVip.ViewModels.Pages
 
                     try
                     {
-                        // --- MAPPING DỮ LIỆU TỪ EXCEL (CỘT 2 -> CỘT 11) ---
-                        // Giả sử copy cả cột STT (Cột 1 - Index 0) thì ta bắt đầu lấy từ Index 1.
-
                         var profile = new DriverProfile
                         {
-                            // Cột 2: Họ tên
                             FullName = GetPart(parts, 2),
-
-                            // Cột 3: Số CCCD
                             Cccd = GetPart(parts, 3),
-
-                            // Số điện thoại (PhoneNumber) - (Giả sử cột này là SĐT)
                             PhoneNumber = GetPart(parts, 4, "0342036732"),
-
-                            // Cột 4: Ngày cấp (Issue Date)
                             IssueDate = GetPart(parts, 5),
-
-                            // Cột 5: Địa chỉ thường trú (Address)
                             Address = GetPart(parts, 6),
-
-                            // Cột 6: Số nhà / Xã phường (WardCommune)
                             WardCommune = GetPart(parts, 7),
-
-                            // Cột 7: Biển số (LicensePlate)
                             LicensePlate = GetPart(parts, 8),
-
-                            // Cột 8: Số máy (EngineNumber)
                             EngineNumber = GetPart(parts, 9),
-
-                            // Cột 9: Số khung (ChassisNumber)
                             ChassisNumber = GetPart(parts, 10),
-
-                            
-
-                            // Cột 11: (Dư thừa hoặc Ghi chú) - Nếu cần lấy thêm thì gán vào đâu đó
-                            // Ví dụ: Nếu Excel có cột ghi chú, có thể nối vào địa chỉ
-                            // Note = GetPart(parts, 10) 
                         };
 
-                        // Kiểm tra dữ liệu rác: Phải có Tên hoặc Biển số mới thêm
                         if (!string.IsNullOrWhiteSpace(profile.FullName) || !string.IsNullOrWhiteSpace(profile.LicensePlate))
                         {
                             ImportedProfiles.Add(profile);
@@ -129,11 +195,8 @@ namespace ToolVip.ViewModels.Pages
         private void OnSaveToDatabase()
         {
             if (ImportedProfiles.Count == 0) return;
-
-            // Hàm này sẽ tự động lưu vào JSON thông qua DataService
             _dataService.AddToPending(ImportedProfiles.ToList());
-
-            MessageBox.Show($"Đã lưu {ImportedProfiles.Count} hồ sơ vào hệ thống!", "Thành công");
+            MessageBox.Show($"Đã lưu {ImportedProfiles.Count} hồ sơ vào hệ thống (Local)!", "Thành công");
             ImportedProfiles.Clear();
         }
 
@@ -142,10 +205,9 @@ namespace ToolVip.ViewModels.Pages
             if (index >= 0 && index < parts.Length)
             {
                 var val = parts[index].Trim();
-                // Nếu cắt khoảng trắng xong mà rỗng thì trả về mặc định
                 return string.IsNullOrEmpty(val) ? defaultValue : val;
             }
-            return defaultValue; // Trả về mặc định nếu index không tồn tại
+            return defaultValue;
         }
     }
 }
