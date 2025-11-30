@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using ToolVip.Models;
 using ToolVip.Views.UseControls;
 using Wpf.Ui;
@@ -66,20 +67,21 @@ namespace ToolVip.ViewModels.Pages
             ScanZones.Add(new ScanZone { Keyword = "Xác nhận", X1 = 500, Y1 = 200, X2 = 700, Y2 = 250 });
         }
 
-        partial void OnSelectedZoneChanged(ScanZone? value)
+        partial async Task OnSelectedZoneChanged(ScanZone? value)
         {
             if (SelectedZone == null) return;
-            var dialogContent = App.Services.GetRequiredService<ConfigDialog>;
+            var dialogHost = _contentDialogService.GetDialogHost();
             
             var dialog = new ContentDialog
             {
                 Title = "Chi tiết hồ sơ",
-                Content = dialogContent,
+                Content = new ConfigDialog(),
                 //PrimaryButtonText = "Lưu & Chuyển",
                 CloseButtonText = "Đóng",
                 DefaultButton = ContentDialogButton.Close,
             };
-            _contentDialogService.ShowAsync(dialog, CancellationToken.None);
+
+            await dialog.ShowAsync();
         }
 
         // Các Command (Logic sẽ làm sau)
