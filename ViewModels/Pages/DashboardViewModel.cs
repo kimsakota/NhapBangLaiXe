@@ -259,165 +259,93 @@ namespace ToolVip.ViewModels.Pages
 
                 try
                 {
-                    await Task.Run(async () =>
+                    // [MỚI] Vòng lặp chính - Lặp lại cho đến khi bấm Dừng hoặc hết danh sách
+                    int currentLoop = 0;
+                    while (!token.IsCancellationRequested && currentLoop < LoopCount)
                     {
-                        var allZones = _autoViewModel.ScanZones.ToList();
-                        var parallelZones = allZones.Where(z => z.RunStrategy == 0).ToList();
-                        var sequentialZones = allZones.Where(z => z.RunStrategy == 1).ToList();
-                        bool runMainAsync = parallelZones.Any();
+                        // [QUAN TRỌNG] Kiểm tra danh sách có còn không
+                        int remainingCount = 0;
+                        System.Windows.Application.Current.Dispatcher.Invoke(() => remainingCount = Profiles.Count);
 
-                        Debug.WriteLine($"--- BẮT ĐẦU AUTO ---");
-                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "--- BẮT ĐẦU AUTO ---");
-
-                        using var loopCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                        Task playTask;
-
-                        if (runMainAsync)
+                        if (remainingCount == 0)
                         {
-                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Chạy Record chính (Song song)...");
-                            playTask = _recordService.PlayRecordingAsync(_dashboardMacroEvents, loopCts.Token);
-                        }
-                        else
-                        {
-                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Chạy Record chính (Tuần tự)...");
-                            await _recordService.PlayRecordingAsync(_dashboardMacroEvents, token);
-                            playTask = Task.CompletedTask;
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                                _autoViewModel.LogText = "========== HẾT DANH SÁCH - DỪNG TỰ ĐỘNG ==========");
+                            break;
                         }
 
-                        var stopWatch = Stopwatch.StartNew();
-                        bool recordStoppedByOcr = false;
-                        int maxTimeout = 0;
-                        if (parallelZones.Any())
+                        currentLoop++;
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            _autoViewModel.LogText = $"========== VÒNG LẶP {currentLoop}/{LoopCount} (Còn {remainingCount} hồ sơ) ==========");
+
+                        await Task.Run(async () =>
                         {
-                            // Lấy thời gian Timeout lớn nhất từ các vùng song song
-                            maxTimeout = parallelZones.Max(z => z.ScanTimeout);
-                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Tổng thời gian quét: {maxTimeout} giây");
-                        }
+                            var allZones = _autoViewModel.ScanZones.ToList();
+                            var parallelZones = allZones.Where(z => z.RunStrategy == 0).ToList();
+                            var sequentialZones = allZones.Where(z => z.RunStrategy == 1).ToList();
+                            bool runMainAsync = parallelZones.Any();
 
-                        while (true)
-                        {
-                            if (token.IsCancellationRequested) break;
-                            if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 && (GetAsyncKeyState(VK_S) & 0x8000) != 0)
+                            Debug.WriteLine($"--- BẮT ĐẦU AUTO ---");
+                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "--- BẮT ĐẦU AUTO ---");
+
+                            using var loopCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                            Task playTask;
+
+                            if (runMainAsync)
                             {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Người dùng bấm Ctrl+S");
-                                loopCts.Cancel(); _cts.Cancel(); break;
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Chạy Record chính (Song song)...");
+                                playTask = _recordService.PlayRecordingAsync(_dashboardMacroEvents, loopCts.Token);
+                            }
+                            else
+                            {
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Chạy Record chính (Tuần tự)...");
+                                await _recordService.PlayRecordingAsync(_dashboardMacroEvents, token);
+                                playTask = Task.CompletedTask;
                             }
 
-                            // [QUAN TRỌNG] Kiểm tra hết giờ
-                            if (maxTimeout > 0 && stopWatch.Elapsed.TotalSeconds > maxTimeout)
-                            {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Hết thời gian quét (Timeout).");
-                                break;
-                            }
-
-                            if (runMainAsync && playTask.IsCompleted)
-                            {
-                                // [QUAN TRỌNG] Nếu Record chính đã xong:
-                                // 1. Nếu maxTimeout = 0 (tức là tất cả đều chọn "Theo Record chính") => DỪNG NGAY.
-                                // 2. Nếu maxTimeout > 0 (tức là có zone chọn 5s, 10s...) => TIẾP TỤC QUÉT đến khi hết giờ.
-                                if (maxTimeout == 0)
-                                {
-                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Record chính đã xong -> Dừng quét song song.");
-                                    break;
-                                }
-                            }
-
-                            if (!parallelZones.Any()) break;
-
-                            bool foundAnyInLoop = false;
-                            foreach (var targetZone in parallelZones)
-                            {
-                                int x = Math.Min(targetZone.X1, targetZone.X2);
-                                int y = Math.Min(targetZone.Y1, targetZone.Y2);
-                                int w = Math.Abs(targetZone.X1 - targetZone.X2);
-                                int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
-
-                                string scannedText = "";
-                                if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
-
-                                bool isFound = !string.IsNullOrEmpty(scannedText) &&
-                                               scannedText.Contains(targetZone.Keyword, StringComparison.OrdinalIgnoreCase);
-
-                                if (isFound)
-                                {
-                                    foundAnyInLoop = true;
-                                    recordStoppedByOcr = true;
-                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY: {targetZone.Keyword}!");
-
-                                    if (!playTask.IsCompleted)
-                                    {
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Dừng Record Chính...");
-                                        loopCts.Cancel();
-                                        try { await playTask; } catch { }
-                                    }
-
-                                    if (targetZone.FoundActions.Count > 0)
-                                    {
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy Action của '{targetZone.Keyword}'...");
-                                        await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
-                                    }
-
-                                    break;
-                                }
-                            }
-
-                            if (foundAnyInLoop) break;
-
-                            await Task.Delay(200);
-                        }
-
-                        if (!recordStoppedByOcr && !token.IsCancellationRequested)
-                        {
-                            if (!playTask.IsCompleted) { try { await playTask; } catch { } }
-
+                            var stopWatch = Stopwatch.StartNew();
+                            bool recordStoppedByOcr = false;
+                            int maxTimeout = 0;
                             if (parallelZones.Any())
                             {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Hết thời gian (Timeout): Kiểm tra hành động Not Found...");
-                                foreach (var pZone in parallelZones)
-                                {
-                                    if (pZone.NotFoundActions.Count > 0)
-                                    {
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy NotFound Action của vùng: {pZone.Keyword}");
-                                        await _recordService.PlayRecordingAsync(pZone.NotFoundActions, token);
-                                    }
-                                }
+                                maxTimeout = parallelZones.Max(z => z.ScanTimeout);
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Tổng thời gian quét: {maxTimeout} giây");
                             }
 
-                            // Xử lý vùng quét TUẦN TỰ (Sau khi Record chính xong)
-                            foreach (var targetZone in sequentialZones)
+                            while (true)
                             {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Bắt đầu quét sau chạy: {targetZone.Keyword}...");
-
-                                int x = Math.Min(targetZone.X1, targetZone.X2);
-                                int y = Math.Min(targetZone.Y1, targetZone.Y2);
-                                int w = Math.Abs(targetZone.X1 - targetZone.X2);
-                                int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
-
-                                // Xác định thời gian quét tối đa
-                                int scanTimeoutSeconds = targetZone.ScanTimeout;
-                                var scanStopwatch = Stopwatch.StartNew();
-                                bool foundInSequential = false;
-
-                                // Quét liên tục trong khoảng thời gian cho phép
-                                while (true)
+                                if (token.IsCancellationRequested) break;
+                                if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 && (GetAsyncKeyState(VK_S) & 0x8000) != 0)
                                 {
-                                    if (token.IsCancellationRequested) break;
+                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Người dùng bấm Ctrl+S");
+                                    loopCts.Cancel(); _cts.Cancel(); break;
+                                }
 
-                                    // Kiểm tra Ctrl+S
-                                    if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 && (GetAsyncKeyState(VK_S) & 0x8000) != 0)
-                                    {
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Người dùng bấm Ctrl+S");
-                                        loopCts.Cancel(); _cts.Cancel(); break;
-                                    }
+                                if (maxTimeout > 0 && stopWatch.Elapsed.TotalSeconds > maxTimeout)
+                                {
+                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Hết thời gian quét (Timeout).");
+                                    break;
+                                }
 
-                                    // Kiểm tra hết thời gian quét
-                                    if (scanTimeoutSeconds > 0 && scanStopwatch.Elapsed.TotalSeconds > scanTimeoutSeconds)
+                                if (runMainAsync && playTask.IsCompleted)
+                                {
+                                    if (maxTimeout == 0)
                                     {
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Hết thời gian quét cho '{targetZone.Keyword}' ({scanTimeoutSeconds}s)");
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Record chính đã xong -> Dừng quét song song.");
                                         break;
                                     }
+                                }
 
-                                    // Thực hiện OCR
+                                if (!parallelZones.Any()) break;
+
+                                bool foundAnyInLoop = false;
+                                foreach (var targetZone in parallelZones)
+                                {
+                                    int x = Math.Min(targetZone.X1, targetZone.X2);
+                                    int y = Math.Min(targetZone.Y1, targetZone.Y2);
+                                    int w = Math.Abs(targetZone.X1 - targetZone.X2);
+                                    int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
+
                                     string scannedText = "";
                                     if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
 
@@ -426,39 +354,155 @@ namespace ToolVip.ViewModels.Pages
 
                                     if (isFound)
                                     {
-                                        foundInSequential = true;
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY (Sau chạy): {targetZone.Keyword}!");
+                                        foundAnyInLoop = true;
+                                        recordStoppedByOcr = true;
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY: {targetZone.Keyword}!");
+
+                                        if (!playTask.IsCompleted)
+                                        {
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Dừng Record Chính...");
+                                            loopCts.Cancel();
+                                            try { await playTask; } catch { }
+                                        }
 
                                         if (targetZone.FoundActions.Count > 0)
                                         {
-                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy Found Action của '{targetZone.Keyword}'...");
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy Action của '{targetZone.Keyword}'...");
                                             await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
                                         }
-                                        break; // Tìm thấy rồi thì dừng quét vùng này
-                                    }
 
-                                    // Chưa tìm thấy -> Chờ rồi quét lại
-                                    await Task.Delay(200, token);
-                                }
-
-                                // Nếu hết thời gian quét mà KHÔNG tìm thấy -> Chạy NotFound
-                                if (!foundInSequential && !token.IsCancellationRequested)
-                                {
-                                    if (targetZone.NotFoundActions.Count > 0)
-                                    {
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> KHÔNG TÌM THẤY '{targetZone.Keyword}' -> Chạy NotFound Action");
-                                        await _recordService.PlayRecordingAsync(targetZone.NotFoundActions, token);
+                                        break;
                                     }
                                 }
 
-                                scanStopwatch.Stop();
+                                if (foundAnyInLoop) break;
+
+                                await Task.Delay(200);
                             }
+
+                            if (!recordStoppedByOcr && !token.IsCancellationRequested)
+                            {
+                                if (!playTask.IsCompleted) { try { await playTask; } catch { } }
+
+                                if (parallelZones.Any())
+                                {
+                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Hết thời gian (Timeout): Kiểm tra hành động Not Found...");
+                                    foreach (var pZone in parallelZones)
+                                    {
+                                        if (pZone.NotFoundActions.Count > 0)
+                                        {
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy NotFound Action của vùng: {pZone.Keyword}");
+                                            await _recordService.PlayRecordingAsync(pZone.NotFoundActions, token);
+                                        }
+                                    }
+                                }
+
+                                // [SỬA] Xử lý vùng quét TUẦN TỰ (Sau khi Record chính xong)
+                                foreach (var targetZone in sequentialZones)
+                                {
+                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Bắt đầu quét sau chạy: {targetZone.Keyword}...");
+
+                                    int x = Math.Min(targetZone.X1, targetZone.X2);
+                                    int y = Math.Min(targetZone.Y1, targetZone.Y2);
+                                    int w = Math.Abs(targetZone.X1 - targetZone.X2);
+                                    int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
+
+                                    // Xác định thời gian quét tối đa
+                                    int scanTimeoutSeconds = targetZone.ScanTimeout;
+                                    var scanStopwatch = Stopwatch.StartNew();
+                                    bool foundInSequential = false;
+
+                                    // Quét liên tục trong khoảng thời gian cho phép
+                                    while (true)
+                                    {
+                                        if (token.IsCancellationRequested) break;
+
+                                        // Kiểm tra Ctrl+S
+                                        if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 && (GetAsyncKeyState(VK_S) & 0x8000) != 0)
+                                        {
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Người dùng bấm Ctrl+S");
+                                            loopCts.Cancel(); _cts.Cancel(); break;
+                                        }
+
+                                        // Kiểm tra hết thời gian quét
+                                        if (scanTimeoutSeconds > 0 && scanStopwatch.Elapsed.TotalSeconds > scanTimeoutSeconds)
+                                        {
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Hết thời gian quét cho '{targetZone.Keyword}' ({scanTimeoutSeconds}s)");
+                                            break;
+                                        }
+
+                                        // Thực hiện OCR
+                                        string scannedText = "";
+                                        if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
+
+                                        bool isFound = !string.IsNullOrEmpty(scannedText) &&
+                                                       scannedText.Contains(targetZone.Keyword, StringComparison.OrdinalIgnoreCase);
+
+                                        if (isFound)
+                                        {
+                                            foundInSequential = true;
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY (Sau chạy): {targetZone.Keyword}!");
+
+                                            if (targetZone.FoundActions.Count > 0)
+                                            {
+                                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy Found Action của '{targetZone.Keyword}'...");
+                                                await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
+                                            }
+                                            break; // Tìm thấy rồi thì dừng quét vùng này
+                                        }
+
+                                        // Chưa tìm thấy -> Chờ rồi quét lại
+                                        await Task.Delay(200, token);
+                                    }
+
+                                    // Nếu hết thời gian quét mà KHÔNG tìm thấy -> Chạy NotFound
+                                    if (!foundInSequential && !token.IsCancellationRequested)
+                                    {
+                                        if (targetZone.NotFoundActions.Count > 0)
+                                        {
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> KHÔNG TÌM THẤY '{targetZone.Keyword}' -> Chạy NotFound Action");
+                                            await _recordService.PlayRecordingAsync(targetZone.NotFoundActions, token);
+                                        }
+                                    }
+
+                                    scanStopwatch.Stop();
+                                }
+                            }
+
+                            if (!token.IsCancellationRequested)
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "--- HOÀN THÀNH ---");
+
+                        }, token);
+
+                        // [MỚI] Kiểm tra có tiếp tục vòng lặp không
+                        if (token.IsCancellationRequested)
+                        {
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                                _autoViewModel.LogText = $"Đã dừng sau {currentLoop} vòng lặp.");
+                            break;
                         }
 
-                        if (!token.IsCancellationRequested)
-                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "--- HOÀN THÀNH ---");
+                        // Delay ngắn giữa các vòng lặp (tùy chọn)
+                        await Task.Delay(500, token);
+                    }
 
-                    }, token);
+                    // Thông báo kết thúc tất cả vòng lặp
+                    if (!token.IsCancellationRequested)
+                    {
+                        int finalCount = 0;
+                        System.Windows.Application.Current.Dispatcher.Invoke(() => finalCount = Profiles.Count);
+
+                        if (finalCount == 0)
+                        {
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                                _autoViewModel.LogText = $"========== ĐÃ XỬ LÝ HẾT {currentLoop} HỒ SƠ ==========");
+                        }
+                        else
+                        {
+                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                                _autoViewModel.LogText = $"========== HOÀN THÀNH {currentLoop} VÒNG LẶP (Còn {finalCount} hồ sơ) ==========");
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
