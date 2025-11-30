@@ -141,7 +141,7 @@ namespace ToolVip.ViewModels.Pages
                     _recordService.SaveRecording(recordedEvents, _recordPath);
                     MessageBox.Show($"Đã lưu Record Chính ({recordedEvents.Count} bước).", "Đã lưu");
                 }
-                else MessageBox.Show("Vui lòng tạo vùng quét trước.", "Lỗi");
+                else MessageBox.Show("Vui lòng tạo vùng quét trước (sang tab OCR để tạo).", "Lưu ý");
             }
         }
 
@@ -157,6 +157,8 @@ namespace ToolVip.ViewModels.Pages
                 MessageBox.Show("Chưa có Record Chính (quay bằng nút ở Dashboard). Vui lòng quay trước.", "Lỗi");
                 return;
             }
+
+            // [FIX] Kiểm tra Count thay vì lấy phần tử [0] ngay
             if (_autoViewModel.ScanZones.Count == 0) { MessageBox.Show("Chưa có vùng quét.", "Lỗi"); return; }
 
             var initResult = _ocrService.Init("vie");
@@ -172,44 +174,55 @@ namespace ToolVip.ViewModels.Pages
                 {
                     await Task.Run(async () =>
                     {
-                        var targetZone = _autoViewModel.ScanZones[0];
-                        bool isRunParallel = targetZone.RunStrategy == 0; // 0: Song song, 1: Sau khi chạy
-                        int timeoutSeconds = targetZone.ScanTimeout;      // 0: Theo Record chính / Vô hạn
+                        // [FIX] Lấy danh sách tất cả các vùng quét
+                        var allZones = _autoViewModel.ScanZones.ToList();
 
-                        Debug.WriteLine($"--- BẮT ĐẦU (Strategy: {(isRunParallel ? "Song Song" : "Sau khi chạy")}, Timeout: {timeoutSeconds}s) ---");
+                        // Phân loại vùng quét theo chiến thuật
+                        var parallelZones = allZones.Where(z => z.RunStrategy == 0).ToList(); // Song song
+                        var sequentialZones = allZones.Where(z => z.RunStrategy == 1).ToList(); // Tuần tự (Sau khi xong)
+
+                        // Nếu có bất kỳ vùng nào là Song Song -> Chạy Record chính dạng Async (không chờ)
+                        bool runMainAsync = parallelZones.Any();
+
+                        Debug.WriteLine($"--- BẮT ĐẦU AUTO ---");
                         System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "--- BẮT ĐẦU AUTO ---");
 
                         // Tạo CancellationTokenSource riêng để quản lý Record Chính
-                        // Nếu tìm thấy OCR -> Cancel thằng này để dừng Record Chính
                         using var loopCts = CancellationTokenSource.CreateLinkedTokenSource(token);
 
                         Task playTask;
 
                         // --- GIAI ĐOẠN 1: KHỞI ĐỘNG RECORD CHÍNH ---
-                        if (isRunParallel)
+                        if (runMainAsync)
                         {
-                            // SONG SONG: Chạy Record ngay lập tức, không chờ (Assign Task)
+                            // SONG SONG: Chạy Record ngay lập tức, không chờ
+                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Chạy Record chính (Song song)...");
                             playTask = _recordService.PlayRecordingAsync(_dashboardMacroEvents, loopCts.Token);
                         }
                         else
                         {
                             // TUẦN TỰ: Chạy Record xong mới đi tiếp
-                            // Dùng 'token' gốc vì loopCts dùng để cancel khi OCR thấy (nhưng ở đây OCR chưa chạy)
-                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Đang chạy Record chính...");
+                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Chạy Record chính (Tuần tự)...");
                             await _recordService.PlayRecordingAsync(_dashboardMacroEvents, token);
                             playTask = Task.CompletedTask; // Đánh dấu là đã xong
-
-                            // Nếu người dùng bấm Stop trong lúc chạy Record
-                            if (token.IsCancellationRequested) return;
                         }
 
-                        // --- GIAI ĐOẠN 2: QUÉT OCR ---
-                        bool foundKeyword = false;
+                        // --- GIAI ĐOẠN 2: QUÉT OCR SONG SONG (Cho các vùng Parallel) ---
                         var stopWatch = Stopwatch.StartNew();
+                        bool recordStoppedByOcr = false;
 
+                        // Timeout: Lấy cái lớn nhất hoặc 0 (vô hạn)
+                        int maxTimeout = 0;
+                        if (parallelZones.Any())
+                        {
+                            if (parallelZones.Any(z => z.ScanTimeout == 0)) maxTimeout = 0;
+                            else maxTimeout = parallelZones.Max(z => z.ScanTimeout);
+                        }
+
+                        // Vòng lặp quét (Chỉ chạy khi có vùng song song hoặc đang đợi record chính chạy)
                         while (true)
                         {
-                            // 1. Kiểm tra dừng bởi người dùng (Nút Stop hoặc Ctrl+S)
+                            // 1. Kiểm tra dừng bởi người dùng
                             if (token.IsCancellationRequested) break;
                             if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 && (GetAsyncKeyState(VK_S) & 0x8000) != 0)
                             {
@@ -217,94 +230,117 @@ namespace ToolVip.ViewModels.Pages
                                 loopCts.Cancel(); _cts.Cancel(); break;
                             }
 
-                            // 2. Kiểm tra Thời gian (Timeout)
-                            // Nếu Timeout > 0: Quét đủ thời gian thì dừng
-                            if (timeoutSeconds > 0 && stopWatch.Elapsed.TotalSeconds > timeoutSeconds)
+                            // 2. Kiểm tra Timeout
+                            if (maxTimeout > 0 && stopWatch.Elapsed.TotalSeconds > maxTimeout)
                             {
                                 System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Hết thời gian quét (Timeout).");
                                 break;
                             }
 
-                            // 3. Logic thoát vòng lặp tùy theo chế độ
-                            if (isRunParallel)
+                            // 3. Logic thoát: Nếu Record chính đã xong thì dừng quét song song
+                            if (runMainAsync && playTask.IsCompleted)
                             {
-                                // Song song + Timeout = 0 (Theo record): Nếu Record chính xong thì dừng quét
-                                if (timeoutSeconds == 0 && playTask.IsCompleted)
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Record chính đã xong -> Dừng quét song song.");
+                                break;
+                            }
+                            // Nếu không có vùng song song nào thì thoát luôn để sang giai đoạn sau
+                            if (!parallelZones.Any()) break;
+
+                            // 4. [FIX] THỰC HIỆN OCR CHO TẤT CẢ CÁC VÙNG SONG SONG
+                            bool foundAnyInLoop = false;
+                            foreach (var targetZone in parallelZones)
+                            {
+                                int x = Math.Min(targetZone.X1, targetZone.X2);
+                                int y = Math.Min(targetZone.Y1, targetZone.Y2);
+                                int w = Math.Abs(targetZone.X1 - targetZone.X2);
+                                int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
+
+                                string scannedText = "";
+                                if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
+
+                                // Debug log nếu cần
+                                // System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Quét '{targetZone.Keyword}': {scannedText}");
+
+                                bool isFound = !string.IsNullOrEmpty(scannedText) &&
+                                               scannedText.Contains(targetZone.Keyword, StringComparison.OrdinalIgnoreCase);
+
+                                if (isFound)
                                 {
-                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Record chính đã xong -> Dừng quét.");
+                                    foundAnyInLoop = true;
+                                    recordStoppedByOcr = true;
+                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY: {targetZone.Keyword}!");
+
+                                    // Dừng Record Chính ngay lập tức
+                                    if (!playTask.IsCompleted)
+                                    {
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Dừng Record Chính...");
+                                        loopCts.Cancel();
+                                        try { await playTask; } catch { }
+                                    }
+
+                                    // Chạy Record 'Tìm Thấy' của vùng đó
+                                    if (targetZone.FoundActions.Count > 0)
+                                    {
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy Action của '{targetZone.Keyword}'...");
+                                        await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
+                                    }
+
+                                    break; // Thoát foreach
+                                }
+                            }
+
+                            if (foundAnyInLoop) break; // Thoát while
+
+                            await Task.Delay(200); // Nghỉ giữa các lần quét
+                        }
+
+                        // --- GIAI ĐOẠN 3: XỬ LÝ CÁC VÙNG TUẦN TỰ (Sequential) ---
+                        // Chỉ chạy nếu chưa bị dừng bởi OCR Song Song
+                        if (!recordStoppedByOcr && !token.IsCancellationRequested)
+                        {
+                            // Đảm bảo record chính đã xong
+                            if (!playTask.IsCompleted) { try { await playTask; } catch { } }
+
+                            foreach (var targetZone in sequentialZones)
+                            {
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Kiểm tra sau chạy: {targetZone.Keyword}...");
+                                await Task.Delay(500); // Đợi UI ổn định
+
+                                int x = Math.Min(targetZone.X1, targetZone.X2);
+                                int y = Math.Min(targetZone.Y1, targetZone.Y2);
+                                int w = Math.Abs(targetZone.X1 - targetZone.X2);
+                                int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
+
+                                string scannedText = "";
+                                if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
+
+                                bool isFound = !string.IsNullOrEmpty(scannedText) &&
+                                               scannedText.Contains(targetZone.Keyword, StringComparison.OrdinalIgnoreCase);
+
+                                if (isFound)
+                                {
+                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY (Sau chạy): {targetZone.Keyword}!");
+                                    if (targetZone.FoundActions.Count > 0)
+                                    {
+                                        await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
+                                    }
+                                    // Thường tìm thấy 1 lỗi/kết quả là dừng xử lý tiếp
                                     break;
                                 }
-                            }
-                            else
-                            {
-                                // Tuần tự + Timeout = 0: (Mặc định quét 1 lần hoặc khoảng ngắn rồi nghỉ để tránh loop vô hạn)
-                                if (timeoutSeconds == 0 && stopWatch.Elapsed.TotalSeconds > 2) break;
-                            }
-
-                            // 4. THỰC HIỆN OCR
-                            int x = Math.Min(targetZone.X1, targetZone.X2);
-                            int y = Math.Min(targetZone.Y1, targetZone.Y2);
-                            int w = Math.Abs(targetZone.X1 - targetZone.X2);
-                            int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
-
-                            string scannedText = "";
-                            if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
-
-                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"OCR đang tìm '{targetZone.Keyword}': {scannedText}");
-
-                            bool isFound = !string.IsNullOrEmpty(scannedText) &&
-                                           scannedText.Contains(targetZone.Keyword, StringComparison.OrdinalIgnoreCase);
-
-                            if (isFound)
-                            {
-                                foundKeyword = true;
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> TÌM THẤY TỪ KHÓA!");
-
-                                // --- LOGIC QUAN TRỌNG THEO YÊU CẦU ---
-                                // "lúc tìm thấy từ khóa thì, play sẽ dừng hẳn."
-                                if (!playTask.IsCompleted)
+                                else
                                 {
-                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Dừng Record Chính...");
-                                    loopCts.Cancel(); // Hủy lệnh chạy Record chính
-                                    try
+                                    // Nếu có action Not Found
+                                    if (targetZone.NotFoundActions.Count > 0)
                                     {
-                                        await playTask; // Đợi nó dừng hẳn
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> KHÔNG THẤY (Sau chạy): {targetZone.Keyword} -> Chạy NotFound Action");
+                                        await _recordService.PlayRecordingAsync(targetZone.NotFoundActions, token);
                                     }
-                                    catch (OperationCanceledException) { }
-                                    catch (Exception) { }
                                 }
-
-                                // "Và record của tìm thấy sẽ chạy cho xong."
-                                if (targetZone.FoundActions.Count > 0)
-                                {
-                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Chạy Record 'Tìm Thấy'...");
-                                    await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
-                                }
-                                else System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> (Không có hành động 'Tìm Thấy' được cài đặt)");
-
-                                break; // Thoát vòng lặp quét
                             }
-
-                            await Task.Delay(200); // Nghỉ một chút giữa các lần quét
                         }
 
-                        // --- GIAI ĐOẠN 3: XỬ LÝ KHI KHÔNG TÌM THẤY ---
-                        if (!foundKeyword && !token.IsCancellationRequested)
-                        {
-                            // Nếu là Song song và Record chính vẫn đang chạy (do hết Timeout mà chưa xong), có muốn dừng nó không?
-                            // Thường là không, cứ để nó chạy nốt. Nhưng nếu muốn chắc chắn dừng thì uncomment dòng dưới:
-                            // if (!playTask.IsCompleted) { loopCts.Cancel(); try { await playTask; } catch {} }
-
-                            if (targetZone.NotFoundActions.Count > 0)
-                            {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Chạy Record 'Không Thấy'...");
-                                await _recordService.PlayRecordingAsync(targetZone.NotFoundActions, token);
-                            }
-                            else
-                            {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Kết thúc: Không tìm thấy.");
-                            }
-                        }
+                        if (!token.IsCancellationRequested)
+                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "--- HOÀN THÀNH ---");
 
                     }, token);
                 }
