@@ -23,7 +23,7 @@
                      SelectedItem="{Binding ViewModel.SelectedProfile, Mode=TwoWay}"
                      SelectionMode="Single"
                      x:Name="DriverListView"
-                     Margin="10">
+                     Margin="10,10,10,70">
             <ui:ListView.ItemTemplate>
                 <DataTemplate DataType="{x:Type models:DriverProfile}">
                     <Grid>
@@ -43,13 +43,31 @@
                 </DataTemplate>
             </ui:ListView.ItemTemplate>
         </ui:ListView>
-        <ui:Button Content="{Binding ViewModel.Count}"
-                   Grid.Row="1"
-                   Opacity="0.8"
-                   Width="60"
-                   VerticalAlignment="Bottom"
-                   HorizontalAlignment="Right"
-                   Appearance="Primary"
-                   Margin="0,0,20,20"/>
+
+        <StackPanel Grid.Row="1" 
+                    Orientation="Horizontal" 
+                    VerticalAlignment="Bottom" 
+                    HorizontalAlignment="Right"
+                    Margin="0,0,20,20">
+
+            <ui:Button Command="{Binding ViewModel.SyncToServerCommand}"
+                       Content="Đồng bộ Server"
+                       Icon="{ui:SymbolIcon CloudArrowUp24}"
+                       Appearance="Secondary"
+                       Height="40"
+                       Margin="0,0,10,0"/>
+
+            <ui:Button Content="{Binding ViewModel.Count}"
+                       Grid.Row="1"
+                       Width="80" Height="40"
+                       FontWeight="Bold"
+                       FontSize="20"
+                       Opacity="0.8"
+                       VerticalAlignment="Bottom"
+                       HorizontalAlignment="Right"
+                       Appearance="Primary"
+                       />
+        </StackPanel>
+
     </Grid>
 </Page>

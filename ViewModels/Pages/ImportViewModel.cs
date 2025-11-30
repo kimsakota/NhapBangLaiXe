@@ -21,7 +21,7 @@ namespace ToolVip.ViewModels.Pages
         [ObservableProperty] private bool _isBusy = false;
 
         [ObservableProperty]
-        private ObservableCollection<int> _limitOptions = new() { 1, 2, 20, 50, 100 };
+        private ObservableCollection<int> _limitOptions = new() { 1, 2, 5, 20, 50 };
 
         [ObservableProperty]
         private int _selectedLimit = 1;

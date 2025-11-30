@@ -59,20 +59,6 @@
                     </ui:Button.Icon>
                 </ui:Button>
 
-                <!-- [MỚI] Ô nhập số vòng lặp -->
-                <StackPanel Grid.Column="2" 
-                            Orientation="Horizontal" 
-                            VerticalAlignment="Center"
-                            Margin="20,0,0,0">
-                    <ui:NumberBox Value="{Binding ViewModel.LoopCount, Mode=TwoWay}"
-                                  Minimum="1"
-                                  Maximum="10000"
-                                  IsReadOnly="True"
-                                  ClearButtonEnabled="False"
-                                  SpinButtonPlacementMode="Inline"
-                                  ToolTip="Số lần lặp lại (1-10000)"/>
-                </StackPanel>
-
                 <ui:TextBlock Text="Đang ghi"
                               Grid.Column="3"
                               VerticalAlignment="Center" 

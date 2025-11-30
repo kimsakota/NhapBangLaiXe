@@ -44,7 +44,6 @@ namespace ToolVip.ViewModels.Pages
         public bool IsBusy => IsRecording || IsPlaying;
 
         [ObservableProperty] private int? _count = 0;
-        [ObservableProperty] private int _loopCount = 100;
 
         public DashboardViewModel(
             IContentDialogService contentDialogService,
@@ -236,6 +235,14 @@ namespace ToolVip.ViewModels.Pages
         [RelayCommand]
         private async Task PlayAsync()
         {
+            if(!_apiService.IsLoggedIn)
+            {
+                MessageBox.Show("Bạn chưa đăng nhập API (Tab Nhập).\nVui lòng đăng nhập trước khi chạy Auto.",
+                                "Chưa đăng nhập",
+                                System.Windows.MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                return;
+            }
             if (IsRecording) { MessageBox.Show("Đang ghi âm.", "Cảnh báo"); return; }
 
             if (_dashboardMacroEvents.Count == 0) LoadRecordedEvents();
@@ -261,7 +268,7 @@ namespace ToolVip.ViewModels.Pages
                 {
                     // [MỚI] Vòng lặp chính - Lặp lại cho đến khi bấm Dừng hoặc hết danh sách
                     int currentLoop = 0;
-                    while (!token.IsCancellationRequested && currentLoop < LoopCount)
+                    while (!token.IsCancellationRequested)
                     {
                         // [QUAN TRỌNG] Kiểm tra danh sách có còn không
                         int remainingCount = 0;
@@ -276,7 +283,7 @@ namespace ToolVip.ViewModels.Pages
 
                         currentLoop++;
                         System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                            _autoViewModel.LogText = $"========== VÒNG LẶP {currentLoop}/{LoopCount} (Còn {remainingCount} hồ sơ) ==========");
+                            _autoViewModel.LogText = $"========== VÒNG LẶP {currentLoop} (Còn {remainingCount} hồ sơ) ==========");
 
                         await Task.Run(async () =>
                         {
@@ -489,19 +496,8 @@ namespace ToolVip.ViewModels.Pages
                     // Thông báo kết thúc tất cả vòng lặp
                     if (!token.IsCancellationRequested)
                     {
-                        int finalCount = 0;
-                        System.Windows.Application.Current.Dispatcher.Invoke(() => finalCount = Profiles.Count);
-
-                        if (finalCount == 0)
-                        {
-                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                                _autoViewModel.LogText = $"========== ĐÃ XỬ LÝ HẾT {currentLoop} HỒ SƠ ==========");
-                        }
-                        else
-                        {
-                            System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                                _autoViewModel.LogText = $"========== HOÀN THÀNH {currentLoop} VÒNG LẶP (Còn {finalCount} hồ sơ) ==========");
-                        }
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                            _autoViewModel.LogText = $"========== ĐÃ XỬ LÝ XONG {currentLoop} VÒNG LẶP ==========");
                     }
                 }
                 catch (Exception ex)
