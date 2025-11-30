@@ -383,39 +383,75 @@ namespace ToolVip.ViewModels.Pages
                                 }
                             }
 
+                            // Xử lý vùng quét TUẦN TỰ (Sau khi Record chính xong)
                             foreach (var targetZone in sequentialZones)
                             {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Kiểm tra sau chạy: {targetZone.Keyword}...");
-                                await Task.Delay(500);
+                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Bắt đầu quét sau chạy: {targetZone.Keyword}...");
 
                                 int x = Math.Min(targetZone.X1, targetZone.X2);
                                 int y = Math.Min(targetZone.Y1, targetZone.Y2);
                                 int w = Math.Abs(targetZone.X1 - targetZone.X2);
                                 int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
 
-                                string scannedText = "";
-                                if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
+                                // Xác định thời gian quét tối đa
+                                int scanTimeoutSeconds = targetZone.ScanTimeout;
+                                var scanStopwatch = Stopwatch.StartNew();
+                                bool foundInSequential = false;
 
-                                bool isFound = !string.IsNullOrEmpty(scannedText) &&
-                                               scannedText.Contains(targetZone.Keyword, StringComparison.OrdinalIgnoreCase);
-
-                                if (isFound)
+                                // Quét liên tục trong khoảng thời gian cho phép
+                                while (true)
                                 {
-                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY (Sau chạy): {targetZone.Keyword}!");
-                                    if (targetZone.FoundActions.Count > 0)
+                                    if (token.IsCancellationRequested) break;
+
+                                    // Kiểm tra Ctrl+S
+                                    if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 && (GetAsyncKeyState(VK_S) & 0x8000) != 0)
                                     {
-                                        await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Người dùng bấm Ctrl+S");
+                                        loopCts.Cancel(); _cts.Cancel(); break;
                                     }
-                                    break;
+
+                                    // Kiểm tra hết thời gian quét
+                                    if (scanTimeoutSeconds > 0 && scanStopwatch.Elapsed.TotalSeconds > scanTimeoutSeconds)
+                                    {
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Hết thời gian quét cho '{targetZone.Keyword}' ({scanTimeoutSeconds}s)");
+                                        break;
+                                    }
+
+                                    // Thực hiện OCR
+                                    string scannedText = "";
+                                    if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
+
+                                    bool isFound = !string.IsNullOrEmpty(scannedText) &&
+                                                   scannedText.Contains(targetZone.Keyword, StringComparison.OrdinalIgnoreCase);
+
+                                    if (isFound)
+                                    {
+                                        foundInSequential = true;
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> TÌM THẤY (Sau chạy): {targetZone.Keyword}!");
+
+                                        if (targetZone.FoundActions.Count > 0)
+                                        {
+                                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy Found Action của '{targetZone.Keyword}'...");
+                                            await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
+                                        }
+                                        break; // Tìm thấy rồi thì dừng quét vùng này
+                                    }
+
+                                    // Chưa tìm thấy -> Chờ rồi quét lại
+                                    await Task.Delay(200, token);
                                 }
-                                else
+
+                                // Nếu hết thời gian quét mà KHÔNG tìm thấy -> Chạy NotFound
+                                if (!foundInSequential && !token.IsCancellationRequested)
                                 {
                                     if (targetZone.NotFoundActions.Count > 0)
                                     {
-                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> KHÔNG THẤY (Sau chạy): {targetZone.Keyword} -> Chạy NotFound Action");
+                                        System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> KHÔNG TÌM THẤY '{targetZone.Keyword}' -> Chạy NotFound Action");
                                         await _recordService.PlayRecordingAsync(targetZone.NotFoundActions, token);
                                     }
                                 }
+
+                                scanStopwatch.Stop();
                             }
                         }
 
