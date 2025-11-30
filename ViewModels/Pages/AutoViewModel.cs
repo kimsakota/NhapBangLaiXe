@@ -5,7 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices; // [Thêm] Để dùng DllImport
+using System.Runtime.InteropServices;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Unicode;
@@ -18,12 +18,19 @@ using ToolVip.Views.UseControls;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
 using MessageBoxResult = System.Windows.MessageBoxResult;
+using System.Collections.Generic; // Thêm namespace này
 
 namespace ToolVip.ViewModels.Pages
 {
+    // Class hỗ trợ hiển thị thời gian
+    public class TimeoutOption
+    {
+        public string Display { get; set; } = "";
+        public int Value { get; set; }
+    }
+
     public partial class AutoViewModel : ObservableObject
     {
-        // [MỚI] Import API để bắt phím Ctrl + S
         [DllImport("user32.dll")]
         private static extern short GetAsyncKeyState(int vKey);
         private const int VK_CONTROL = 0x11;
@@ -33,6 +40,19 @@ namespace ToolVip.ViewModels.Pages
         private readonly IRecordService _recordService;
         private readonly IOcrService _ocrService;
         private readonly string _configPath;
+
+        // [MỚI] Danh sách tùy chọn thời gian chuẩn để Binding
+        public List<TimeoutOption> TimeoutOptions { get; } = new List<TimeoutOption>
+        {
+            new TimeoutOption { Display = "Không giới hạn (Theo Record)", Value = 0 },
+            new TimeoutOption { Display = "1 giây", Value = 1 },
+            new TimeoutOption { Display = "3 giây", Value = 3 },
+            new TimeoutOption { Display = "5 giây", Value = 5 },
+            new TimeoutOption { Display = "10 giây", Value = 10 },
+            new TimeoutOption { Display = "15 giây", Value = 15 },
+            new TimeoutOption { Display = "30 giây", Value = 30 },
+            new TimeoutOption { Display = "60 giây", Value = 60 }
+        };
 
         [ObservableProperty]
         private ObservableCollection<ScanZone> _scanZones = new();
@@ -75,10 +95,8 @@ namespace ToolVip.ViewModels.Pages
 
             LoadZones();
 
-            // [CẬP NHẬT] Đổi từ khóa mặc định theo yêu cầu
             if (ScanZones.Count == 0)
             {
-                // Từ khóa 1
                 ScanZones.Add(new ScanZone
                 {
                     Keyword = "Trường dữ liệu bạn nhập bị lỗi. Vui lòng kiểm tra lại",
@@ -89,7 +107,6 @@ namespace ToolVip.ViewModels.Pages
                     IsExactMatch = true
                 });
 
-                // Từ khóa 2 (Đã sửa từ "Xác nhận" -> "Không tìm thấy kết quả")
                 ScanZones.Add(new ScanZone
                 {
                     Keyword = "Không tìm thấy kết quả",
@@ -186,8 +203,6 @@ namespace ToolVip.ViewModels.Pages
             _contentDialogService.ShowAsync(dialog, System.Threading.CancellationToken.None);
         }
 
-        // --- COMMANDS ---
-
         [RelayCommand]
         private async Task TestAllZonesAsync()
         {
@@ -274,7 +289,6 @@ namespace ToolVip.ViewModels.Pages
             LogText = "";
         }
 
-        // --- CÁC HÀM CŨ ---
         [RelayCommand]
         private void GetCoordinateA()
         {
@@ -316,15 +330,13 @@ namespace ToolVip.ViewModels.Pages
                 SaveZones();
 
                 System.Windows.MessageBox.Show($"Đã lưu Found ({events.Count} bước) vào cấu hình.");
-                OnPropertyChanged(nameof(SelectedZone)); // Refresh UI
+                OnPropertyChanged(nameof(SelectedZone));
             }
             else
             {
                 if (_recordService.IsRecording) return;
                 _recordService.StartRecording();
                 IsRecordingFound = true;
-
-                // [MỚI] Bắt đầu kiểm tra Ctrl + S
                 CheckStopKey(true);
             }
         }
@@ -342,27 +354,23 @@ namespace ToolVip.ViewModels.Pages
                 SaveZones();
 
                 System.Windows.MessageBox.Show($"Đã lưu NotFound ({events.Count} bước) vào cấu hình.");
-                OnPropertyChanged(nameof(SelectedZone)); // Refresh UI
+                OnPropertyChanged(nameof(SelectedZone));
             }
             else
             {
                 if (_recordService.IsRecording) return;
                 _recordService.StartRecording();
                 IsRecordingNotFound = true;
-
-                // [MỚI] Bắt đầu kiểm tra Ctrl + S
                 CheckStopKey(false);
             }
         }
 
-        // [MỚI] Hàm chạy ngầm để kiểm tra phím Ctrl + S
         private void CheckStopKey(bool isFoundRecording)
         {
             _ = Task.Run(async () =>
             {
                 while (true)
                 {
-                    // Kiểm tra xem còn đang record không (nếu người dùng bấm nút Dừng thì thoát loop)
                     bool recording = isFoundRecording ? IsRecordingFound : IsRecordingNotFound;
                     if (!recording) break;
 
@@ -371,7 +379,6 @@ namespace ToolVip.ViewModels.Pages
 
                     if (isCtrl && isS)
                     {
-                        // Gọi lại ToggleRecord... trên UI thread để dừng
                         System.Windows.Application.Current.Dispatcher.Invoke(() =>
                         {
                             if (isFoundRecording) ToggleRecordFound();
@@ -384,7 +391,6 @@ namespace ToolVip.ViewModels.Pages
             });
         }
 
-        // [MỚI] Lệnh xóa Record Found
         [RelayCommand]
         private void DeleteRecordFound()
         {
@@ -396,12 +402,11 @@ namespace ToolVip.ViewModels.Pages
             {
                 SelectedZone.FoundActions.Clear();
                 SaveZones();
-                OnPropertyChanged(nameof(SelectedZone)); // Cập nhật lại giao diện (số bước)
+                OnPropertyChanged(nameof(SelectedZone));
                 System.Windows.MessageBox.Show("Đã xóa bản ghi thành công.");
             }
         }
 
-        // [MỚI] Lệnh xóa Record Not Found
         [RelayCommand]
         private void DeleteRecordNotFound()
         {
@@ -413,7 +418,7 @@ namespace ToolVip.ViewModels.Pages
             {
                 SelectedZone.NotFoundActions.Clear();
                 SaveZones();
-                OnPropertyChanged(nameof(SelectedZone)); // Cập nhật lại giao diện (số bước)
+                OnPropertyChanged(nameof(SelectedZone));
                 System.Windows.MessageBox.Show("Đã xóa bản ghi thành công.");
             }
         }

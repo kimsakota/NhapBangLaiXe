@@ -29,7 +29,7 @@ namespace ToolVip.ViewModels.Pages
         private readonly IDataService _dataService;
         private readonly IRecordService _recordService;
         private readonly IOcrService _ocrService;
-        private readonly IApiService _apiService; // [Thêm]
+        private readonly IApiService _apiService;
         private readonly AutoViewModel _autoViewModel;
 
         private CancellationTokenSource? _cts;
@@ -51,17 +51,16 @@ namespace ToolVip.ViewModels.Pages
             IDataService dataService,
             IRecordService recordService,
             IOcrService ocrService,
-            IApiService apiService, // [Thêm]
+            IApiService apiService,
             AutoViewModel autoViewModel)
         {
             _contentDialogService = contentDialogService;
             _dataService = dataService;
             _recordService = recordService;
             _ocrService = ocrService;
-            _apiService = apiService; // [Thêm]
+            _apiService = apiService;
             _autoViewModel = autoViewModel;
 
-            // [LƯU Ý] Folder Macros cũng nên được quản lý gọn gàng, nhưng tạm thời giữ nguyên
             _recordPath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "Macros", "Record_MainLoop.json");
 
             LoadRecordedEvents();
@@ -107,33 +106,26 @@ namespace ToolVip.ViewModels.Pages
         {
             if (SelectedProfile == null) return;
 
-            // [YÊU CẦU 1] Lưu backup ngay khi mở hồ sơ để tránh mất điện/crash
             _dataService.BackupSingleProfile(SelectedProfile);
 
             var dialogControl = new ChiTietDialog { DataContext = SelectedProfile };
             var dialog = new ContentDialog
             {
-                Title = $"Hồ sơ: {SelectedProfile.LicensePlate}", // Hiện biển số lên tiêu đề
+                Title = $"Hồ sơ: {SelectedProfile.LicensePlate}",
                 Content = dialogControl,
                 PrimaryButtonText = "Lưu & Chuyển",
                 CloseButtonText = "Đóng",
                 DefaultButton = ContentDialogButton.Close,
             };
 
-            // Hiển thị Dialog
             _contentDialogService.ShowAsync(dialog, CancellationToken.None);
 
             dialog.Closing += async (s, e) =>
             {
                 if (e.Result == ContentDialogResult.Primary)
                 {
-                    // [MỚI - QUAN TRỌNG] Logic gửi hồ sơ đi (API Confirm) trước khi lưu local
-
-                    // 1. Gửi API xác nhận nhập xong (/api/{role}/nhap)
-                    // Sử dụng LicensePlate làm ID
                     if (!string.IsNullOrEmpty(SelectedProfile.LicensePlate))
                     {
-                        // Gọi API (có thể await để đảm bảo server nhận được)
                         bool apiResult = await _apiService.ConfirmImportedAsync(SelectedProfile.LicensePlate);
 
                         if (apiResult)
@@ -142,16 +134,11 @@ namespace ToolVip.ViewModels.Pages
                         }
                         else
                         {
-                            // Nếu API lỗi, vẫn cho lưu local nhưng log lỗi
                             Debug.WriteLine($"=> Gửi API THẤT BẠI cho biển số: {SelectedProfile.LicensePlate}");
-                            // Có thể hiện thông báo nhỏ nếu cần thiết, nhưng để workflow nhanh thì thường bỏ qua
                         }
                     }
 
-                    // 2. Chuyển vào mục Đã lưu (Local File)
                     _dataService.MoveToSaved(SelectedProfile);
-
-                    // 3. Cập nhật UI (Xóa khỏi danh sách chờ)
                     Profiles.Remove(SelectedProfile);
                     Count--;
                 }
@@ -162,7 +149,6 @@ namespace ToolVip.ViewModels.Pages
             };
         }
 
-        // Hàm xử lý nút Thư mục (Open Record)
         [RelayCommand]
         private void OpenRecord()
         {
@@ -185,11 +171,7 @@ namespace ToolVip.ViewModels.Pages
                     if (events != null && events.Count > 0)
                     {
                         _dashboardMacroEvents = events;
-
-                        // [YÊU CẦU] Ghi đè dữ liệu mới vào file Record_MainLoop.json
-                        // Để lần sau mở app lên nó sẽ load file này
                         _recordService.SaveRecording(_dashboardMacroEvents, _recordPath);
-
                         MessageBox.Show($"Đã nạp file record mới thành công!\n- Nguồn: {Path.GetFileName(filePath)}\n- Số bước: {events.Count}\n- Đã lưu đè vào MainLoop.", "Thành công");
                     }
                     else
@@ -209,39 +191,32 @@ namespace ToolVip.ViewModels.Pages
         {
             if (IsPlaying) { MessageBox.Show("Đang chạy auto...", "Thông báo"); return; }
 
-            // Nếu đang ghi thì dừng lại (Logic nút bấm)
             if (IsRecording)
             {
                 StopRecordingInternal();
                 return;
             }
 
-            // Bắt đầu ghi
             IsRecording = true;
             _recordService.StartRecording();
 
-            // [FIX] Chạy Task ngầm nhưng KHÔNG AWAIT để lệnh Command kết thúc ngay lập tức.
-            // Điều này giúp nút bấm không bị khóa và có thể nhận lệnh Click tiếp theo để dừng.
             _ = Task.Run(async () =>
             {
                 while (IsRecording)
                 {
-                    // Kiểm tra phím Ctrl + S
                     bool isCtrl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0;
                     bool isS = (GetAsyncKeyState(VK_S) & 0x8000) != 0;
 
                     if (isCtrl && isS)
                     {
-                        // Dừng ghi (Invoke về UI thread vì StopRecordingInternal có hiện MessageBox)
                         System.Windows.Application.Current.Dispatcher.Invoke(StopRecordingInternal);
                         break;
                     }
-                    await Task.Delay(50); // Delay nhỏ để đỡ tốn CPU
+                    await Task.Delay(50);
                 }
             });
         }
 
-        // Hàm dừng ghi dùng chung cho cả Nút bấm và Phím tắt
         private void StopRecordingInternal()
         {
             if (!IsRecording) return;
@@ -314,8 +289,9 @@ namespace ToolVip.ViewModels.Pages
                         int maxTimeout = 0;
                         if (parallelZones.Any())
                         {
-                            if (parallelZones.Any(z => z.ScanTimeout == 0)) maxTimeout = 0;
-                            else maxTimeout = parallelZones.Max(z => z.ScanTimeout);
+                            // Lấy thời gian Timeout lớn nhất từ các vùng song song
+                            maxTimeout = parallelZones.Max(z => z.ScanTimeout);
+                            System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Tổng thời gian quét: {maxTimeout} giây");
                         }
 
                         while (true)
@@ -327,6 +303,7 @@ namespace ToolVip.ViewModels.Pages
                                 loopCts.Cancel(); _cts.Cancel(); break;
                             }
 
+                            // [QUAN TRỌNG] Kiểm tra hết giờ
                             if (maxTimeout > 0 && stopWatch.Elapsed.TotalSeconds > maxTimeout)
                             {
                                 System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Hết thời gian quét (Timeout).");
@@ -335,9 +312,16 @@ namespace ToolVip.ViewModels.Pages
 
                             if (runMainAsync && playTask.IsCompleted)
                             {
-                                System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Record chính đã xong -> Dừng quét song song.");
-                                break;
+                                // [QUAN TRỌNG] Nếu Record chính đã xong:
+                                // 1. Nếu maxTimeout = 0 (tức là tất cả đều chọn "Theo Record chính") => DỪNG NGAY.
+                                // 2. Nếu maxTimeout > 0 (tức là có zone chọn 5s, 10s...) => TIẾP TỤC QUÉT đến khi hết giờ.
+                                if (maxTimeout == 0)
+                                {
+                                    System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Record chính đã xong -> Dừng quét song song.");
+                                    break;
+                                }
                             }
+
                             if (!parallelZones.Any()) break;
 
                             bool foundAnyInLoop = false;
@@ -386,13 +370,11 @@ namespace ToolVip.ViewModels.Pages
                         {
                             if (!playTask.IsCompleted) { try { await playTask; } catch { } }
 
-                            // [FIX] XỬ LÝ TIMEOUT CHO CÁC VÙNG SONG SONG (PARALLEL ZONES)
                             if (parallelZones.Any())
                             {
                                 System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "=> Hết thời gian (Timeout): Kiểm tra hành động Not Found...");
                                 foreach (var pZone in parallelZones)
                                 {
-                                    // Chỉ chạy nếu có khai báo NotFoundActions
                                     if (pZone.NotFoundActions.Count > 0)
                                     {
                                         System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy NotFound Action của vùng: {pZone.Keyword}");
@@ -401,7 +383,6 @@ namespace ToolVip.ViewModels.Pages
                                 }
                             }
 
-                            // Chạy tiếp các vùng tuần tự (Sequential Zones)
                             foreach (var targetZone in sequentialZones)
                             {
                                 System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Kiểm tra sau chạy: {targetZone.Keyword}...");
