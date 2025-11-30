@@ -68,10 +68,30 @@ namespace ToolVip.ViewModels.Pages
 
             LoadZones();
 
+            // [CẬP NHẬT] Đổi từ khóa mặc định theo yêu cầu
             if (ScanZones.Count == 0)
             {
-                ScanZones.Add(new ScanZone { Keyword = "Trường dữ liệu bạn nhập bị lỗi. Vui lòng kiểm tra lại", X1 = 100, Y1 = 200, X2 = 300, Y2 = 250, IsExactMatch = true });
-                ScanZones.Add(new ScanZone { Keyword = "Xác nhận", X1 = 500, Y1 = 200, X2 = 700, Y2 = 250 });
+                // Từ khóa 1
+                ScanZones.Add(new ScanZone
+                {
+                    Keyword = "Trường dữ liệu bạn nhập bị lỗi. Vui lòng kiểm tra lại",
+                    X1 = 100,
+                    Y1 = 200,
+                    X2 = 300,
+                    Y2 = 250,
+                    IsExactMatch = true
+                });
+
+                // Từ khóa 2 (Đã sửa từ "Xác nhận" -> "Không tìm thấy kết quả")
+                ScanZones.Add(new ScanZone
+                {
+                    Keyword = "Không tìm thấy kết quả",
+                    X1 = 500,
+                    Y1 = 200,
+                    X2 = 700,
+                    Y2 = 250
+                });
+
                 SaveZones();
             }
 
