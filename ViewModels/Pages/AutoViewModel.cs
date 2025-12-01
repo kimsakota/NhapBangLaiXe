@@ -99,7 +99,7 @@ namespace ToolVip.ViewModels.Pages
             {
                 ScanZones.Add(new ScanZone
                 {
-                    Keyword = "Trường dữ liệu bạn nhập bị lỗi. Vui lòng kiểm tra lại",
+                    Keyword = "Hoàn thành",
                     X1 = 100,
                     Y1 = 200,
                     X2 = 300,

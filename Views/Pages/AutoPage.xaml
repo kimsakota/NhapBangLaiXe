@@ -33,7 +33,30 @@
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
 
-            <ui:TextBlock Text="Vùng Quét OCR" FontTypography="Subtitle" Margin="0,0,0,10"/>
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <ui:TextBlock Text="Vùng Quét OCR" 
+                  FontTypography="Subtitle" 
+                  VerticalAlignment="Center"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <ui:Button Command="{Binding ViewModel.AddZoneCommand}"
+                               Icon="{ui:SymbolIcon Add24}"
+                               Appearance="Success"
+                               ToolTip="Thêm cấu hình vùng mới"
+                               Margin="0,0,5,0"/>
+
+                    <ui:Button Command="{Binding ViewModel.DeleteZoneCommand}"
+                   Icon="{ui:SymbolIcon Delete24}"
+                   Appearance="Danger"
+                   ToolTip="Xóa vùng đang chọn"
+                   IsEnabled="{Binding ViewModel.SelectedZone, Converter={x:Static help:NullToVisibilityConverter.Instance}}"/>
+                </StackPanel>
+            </Grid>
 
             <!-- List Vùng -->
             <ui:ListView Grid.Row="2"

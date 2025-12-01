@@ -11,7 +11,7 @@
              d:DataContext="{d:DesignInstance Type=pages:AutoViewModel}"
              mc:Ignorable="d"  
              ScrollViewer.CanContentScroll="False"
-             d:DesignHeight="600" d:DesignWidth="600">
+             d:DesignHeight="650" d:DesignWidth="600">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -19,11 +19,19 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Phần 1: Tọa độ -->
-        <GroupBox Header="Cấu hình Vùng Quét (Alt+1: Điểm 1, Alt+2: Điểm 2)" Margin="0,0,0,15">
+        <GroupBox Grid.Row="0" Header="Từ khóa nhận diện (Tên vùng)" Margin="0,0,0,15">
+            <StackPanel Margin="5">
+                <ui:TextBox Text="{Binding SelectedZone.Keyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                            PlaceholderText="Nhập text cần tìm trên màn hình (VD: Đăng nhập, Lưu...)"
+                            Icon="{ui:SymbolIcon Tag24}"/>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox Grid.Row="1" Header="Cấu hình Vùng Quét (Alt+1: Điểm 1, Alt+2: Điểm 2)" Margin="0,0,0,15">
             <Grid Margin="5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -51,8 +59,7 @@
             </Grid>
         </GroupBox>
 
-        <!-- Phần 2: Cấu hình Thời gian & Chiến thuật -->
-        <GroupBox Grid.Row="1" Header="Thiết lập Chạy" Margin="0,0,0,15">
+        <GroupBox Grid.Row="2" Header="Thiết lập Chạy" Margin="0,0,0,15">
             <Grid Margin="5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -72,7 +79,6 @@
                     <TextBlock Text="Thời gian quét (Timeout)" Margin="0,0,0,5"/>
                     <ComboBox SelectedValue="{Binding SelectedZone.ScanTimeout, Mode=TwoWay}" 
                               SelectedValuePath="Tag">
-                        <!-- [QUAN TRỌNG] Phải dùng sys:Int32 để Tag hiểu là SỐ, Binding mới ăn vào biến int -->
                         <ComboBoxItem Content="Không giới hạn (Theo Record chính)">
                             <ComboBoxItem.Tag>
                                 <sys:Int32>0</sys:Int32>
@@ -113,8 +119,7 @@
             </Grid>
         </GroupBox>
 
-        <!-- Phần 3: Hành động Found -->
-        <GroupBox Grid.Row="2" Header="Khi TÌM THẤY từ khóa (Found)" Margin="0,0,0,15" BorderBrush="Green">
+        <GroupBox Grid.Row="3" Header="Khi TÌM THẤY từ khóa (Found)" Margin="0,0,0,15" BorderBrush="Green">
             <StackPanel Margin="5">
                 <StackPanel Orientation="Horizontal">
                     <ui:Button Command="{Binding ToggleRecordFoundCommand}" 
@@ -139,8 +144,7 @@
             </StackPanel>
         </GroupBox>
 
-        <!-- Phần 4: Hành động Not Found -->
-        <GroupBox Grid.Row="3" Header="Khi KHÔNG thấy từ khóa (Not Found)" Margin="0,0,0,15" BorderBrush="OrangeRed">
+        <GroupBox Grid.Row="4" Header="Khi KHÔNG thấy từ khóa (Not Found)" Margin="0,0,0,15" BorderBrush="OrangeRed">
             <StackPanel Margin="5">
                 <StackPanel Orientation="Horizontal">
                     <ui:Button Command="{Binding ToggleRecordNotFoundCommand}" 
@@ -164,5 +168,15 @@
                 </StackPanel>
             </StackPanel>
         </GroupBox>
+
+        <ui:Button Command="{Binding ViewModel.DeleteZoneCommand}"
+                   Grid.Row="5"
+                   HorizontalAlignment="Center"
+                   Icon="{ui:SymbolIcon Delete24}"
+                   Content="Xóa cấu hình này"
+                   Appearance="Danger"
+                   ToolTip="Xóa vùng đang chọn"
+                   Height="35"
+                   IsEnabled="{Binding ViewModel.SelectedZone, Converter={x:Static help:NullToVisibilityConverter.Instance}}"/>        
     </Grid>
 </UserControl>

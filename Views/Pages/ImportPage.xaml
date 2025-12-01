@@ -48,8 +48,12 @@
                 </StackPanel>
 
                 <!-- Trạng thái đã đăng nhập -->
-                <StackPanel Orientation="Horizontal" 
-                            Visibility="{Binding ViewModel.IsLoggedIn, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}">
+                <Grid Visibility="{Binding ViewModel.IsLoggedIn, Converter={x:Static help:BooleanToVisibilityConverter.Instance}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
                     <ui:SymbolIcon Symbol="CheckmarkCircle24" Foreground="Green" Margin="0,0,10,0"/>
                     <TextBlock Text="Đã kết nối tới Sever" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="Green"/>
 
@@ -57,6 +61,7 @@
                     <!-- Các nút chức năng API -->
                     <ui:Button Command="{Binding ViewModel.GetDataFromApiCommand}" 
                                Content="Lấy hồ sơ" 
+                               Grid.Column="1"
                                Appearance="Primary" 
                                Icon="{ui:SymbolIcon Symbol=ArrowDownload24}"
                                Margin="20,0,0,0"/>
@@ -64,10 +69,11 @@
                     <ComboBox ItemsSource="{Binding ViewModel.LimitOptions}"
                               SelectedItem="{Binding ViewModel.SelectedLimit, Mode=TwoWay}"
                               ToolTip="Số lượng hồ sơ cần lấy"
+                              Grid.Column="2"
                               Foreground="Green"
                               FontWeight="Bold"
-                              Margin="20,0,0,0"/>
-                </StackPanel>
+                              Margin="20,0,10,0"/>
+                </Grid>
 
                 <!-- Loading Indicator -->
                 <ui:ProgressRing Grid.Column="1" IsIndeterminate="True" 
@@ -100,7 +106,7 @@
                        Content="Lưu tất cả vào CSDL Local" 
                        Appearance="Success" 
                        Icon="{ui:SymbolIcon Symbol=Save24}"
-                       HorizontalAlignment="Left" 
+                       HorizontalAlignment="Right" 
                        Height="36"/>
         </Border>
 
