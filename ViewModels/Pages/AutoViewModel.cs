@@ -1,6 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.IO;
@@ -17,8 +18,8 @@ using ToolVip.Services;
 using ToolVip.Views.UseControls;
 using Wpf.Ui;
 using Wpf.Ui.Controls;
+using MessageBoxButton = System.Windows.MessageBoxButton; // Thêm namespace này
 using MessageBoxResult = System.Windows.MessageBoxResult;
-using System.Collections.Generic; // Thêm namespace này
 
 namespace ToolVip.ViewModels.Pages
 {
@@ -425,6 +426,23 @@ namespace ToolVip.ViewModels.Pages
 
         [RelayCommand] private void AddZone() { ScanZones.Add(new ScanZone { Keyword = "New Zone" }); }
 
-        [RelayCommand] private void DeleteZone() { if (SelectedZone != null) ScanZones.Remove(SelectedZone); }
+        [RelayCommand] private void DeleteZone(object? parameter)
+        {
+            if (SelectedZone == null) return;
+
+            var result = System.Windows.MessageBox.Show(
+                $"Bạn có chắc chắn muốn xóa vùng '{SelectedZone.Keyword}' không?",
+                "Xác nhận xóa",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if(result == MessageBoxResult.Yes)
+            {
+                ScanZones.Remove(SelectedZone);
+                if(parameter is ContentDialog dialog)
+                    dialog.Hide();
+
+                SelectedZone = null;
+            }
+        }
     }
 }

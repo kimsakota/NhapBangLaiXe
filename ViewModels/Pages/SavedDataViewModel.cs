@@ -107,7 +107,8 @@ namespace ToolVip.ViewModels.Pages
                     (!string.IsNullOrEmpty(p.LicensePlate) && p.LicensePlate.ToLower().Contains(keyword)) ||
                     (!string.IsNullOrEmpty(p.FullName) && p.FullName.ToLower().Contains(keyword)) ||
                     (!string.IsNullOrEmpty(p.Cccd) && p.Cccd.ToLower().Contains(keyword)) ||
-                    (!string.IsNullOrEmpty(p.PhoneNumber) && p.PhoneNumber.ToLower().Contains(keyword))
+                    (!string.IsNullOrEmpty(p.PhoneNumber) && p.PhoneNumber.ToLower().Contains(keyword)) || 
+                    (!string.IsNullOrEmpty(p.WardCommune) && p.WardCommune.ToLower().Contains(keyword))
                 ).ToList();
 
                 SavedProfiles = new ObservableCollection<DriverProfile>(filtered);

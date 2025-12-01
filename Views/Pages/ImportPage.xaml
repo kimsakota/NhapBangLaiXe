@@ -31,11 +31,9 @@
                             Visibility="{Binding ViewModel.IsLoggedIn, Converter={x:Static help:BooleanToCollapsedConverter.Instance}}">
                     <ui:TextBox PlaceholderText="Username" 
                                 Text="{Binding ViewModel.Username, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
-                                IsReadOnly="True"
                                 Width="120" Margin="0,0,5,0"/>
 
                     <ui:PasswordBox PlaceholderText="Password" 
-                                    IsReadOnly="True"
                                     Password="{Binding ViewModel.Password, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                     ClearButtonEnabled="False"
                                     Width="120" Margin="0,0,10,0"/>
@@ -54,8 +52,13 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <ui:SymbolIcon Symbol="CheckmarkCircle24" Foreground="Green" Margin="0,0,10,0"/>
-                    <TextBlock Text="Đã kết nối tới Sever" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="Green"/>
+                    <DockPanel>
+                        <ui:SymbolIcon Symbol="CheckmarkCircle24" Foreground="Green" Margin="0,0,10,0"/>
+                        <ui:TextBlock Text="Đã kết nối tới Sever" 
+                               VerticalAlignment="Center" 
+                               FontWeight="SemiBold" 
+                               Foreground="Green"/>
+                    </DockPanel>
 
                     <!-- [SỬA] Thêm Symbol= cho Icon -->
                     <!-- Các nút chức năng API -->

@@ -169,7 +169,8 @@
             </StackPanel>
         </GroupBox>
 
-        <ui:Button Command="{Binding ViewModel.DeleteZoneCommand}"
+        <ui:Button Command="{Binding DeleteZoneCommand}"
+                   CommandParameter="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ui:ContentDialog}}"
                    Grid.Row="5"
                    HorizontalAlignment="Center"
                    Icon="{ui:SymbolIcon Delete24}"

@@ -15,8 +15,8 @@ namespace ToolVip.ViewModels.Pages
         [ObservableProperty]
         private ObservableCollection<DriverProfile> _importedProfiles = new();
 
-        [ObservableProperty] private string _username = "0384022083";
-        [ObservableProperty] private string _password = "2083";
+        [ObservableProperty] private string _username = "";
+        [ObservableProperty] private string _password = "";
         [ObservableProperty] private bool _isLoggedIn = false;
         [ObservableProperty] private bool _isBusy = false;
 
@@ -30,6 +30,13 @@ namespace ToolVip.ViewModels.Pages
         {
             _dataService = dataService;
             _apiService = apiService;
+
+            var loginConfig = _dataService.LoadLoginConfig();
+            if(!string.IsNullOrEmpty(loginConfig.Username))
+            {
+                Username = loginConfig.Username;
+                Password = loginConfig.Password;
+            }
 
             // Tự động load lại dữ liệu temp nếu có (phòng trường hợp crash)
             LoadTempData();
@@ -61,6 +68,12 @@ namespace ToolVip.ViewModels.Pages
             {
                 IsLoggedIn = true;
                 //MessageBox.Show("Đăng nhập thành công!", "Thông báo");
+
+                _dataService.SaveLoginConfig(new LoginConfig
+                {
+                    Username = Username,
+                    Password = Password
+                });
             }
             else
             {

@@ -20,10 +20,14 @@ namespace ToolVip.Services
         List<DriverProfile> LoadSavedData();
         void MoveToSaved(DriverProfile profile); // Chuyển từ Chờ sang Đã lưu
 
-        // [MỚI] Xử lý File Tạm (Temp/Backup) - Tránh mất dữ liệu
+        // Xử lý File Tạm (Temp/Backup) - Tránh mất dữ liệu
         void SaveToTemp(List<DriverProfile> profiles); // Lưu danh sách Import tạm thời
         List<DriverProfile> LoadTempData();
         void BackupSingleProfile(DriverProfile profile); // Backup 1 hồ sơ đang xem
+
+        // Lưu/Tải thông tin đăng nhập
+        LoginConfig LoadLoginConfig();
+        void SaveLoginConfig(LoginConfig config);
     }
 
     public class DataService : IDataService
@@ -33,6 +37,7 @@ namespace ToolVip.Services
         private readonly string _savedPath;
         private readonly string _tempImportPath;  // File tạm khi mới lấy về
         private readonly string _backupSinglePath; // File backup hồ sơ đang mở
+        private readonly string _loginConfigPath;  // File lưu tài khoản
         private readonly JsonSerializerOptions _options;
 
         public DataService()
@@ -46,6 +51,7 @@ namespace ToolVip.Services
             _savedPath = Path.Combine(_userDataFolder, "saved_profiles.json");
             _tempImportPath = Path.Combine(_userDataFolder, "temp_import.json");
             _backupSinglePath = Path.Combine(_userDataFolder, "current_viewing_backup.json");
+            _loginConfigPath = Path.Combine(_userDataFolder, "login_config.json");
 
             // Cấu hình để không lỗi font tiếng Việt
             _options = new JsonSerializerOptions
@@ -118,7 +124,7 @@ namespace ToolVip.Services
             if (File.Exists(_backupSinglePath)) File.Delete(_backupSinglePath);
         }
 
-        // --- [MỚI] KHU VỰC XỬ LÝ FILE TEMP / BACKUP ---
+        // --- KHU VỰC XỬ LÝ FILE TEMP / BACKUP ---
 
         public void SaveToTemp(List<DriverProfile> profiles)
         {
@@ -164,5 +170,45 @@ namespace ToolVip.Services
                 System.Diagnostics.Debug.WriteLine($"Lỗi lưu file {path}: {ex.Message}");
             }
         }
+
+        // --- KHU VỰC XỬ LÝ LOGIN CONFIG ---
+
+        public LoginConfig LoadLoginConfig()
+        {
+            return LoadFile<LoginConfig>(_loginConfigPath) ?? new LoginConfig();
+        }
+
+        public void SaveLoginConfig(LoginConfig config)
+        {
+            SaveFile(_loginConfigPath, config);
+        }
+
+        // --- HÀM HỖ TRỢ CHUNG (Generic) ---
+
+        private T? LoadFile<T>(string path)
+        {
+            if (!File.Exists(path)) return default;
+            try
+            {
+                var json = File.ReadAllText(path);
+                return JsonSerializer.Deserialize<T>(json);
+            }
+            catch { return default; }
+        }
+
+        private void SaveFile<T>(string path, T data)
+        {
+            try
+            {
+                EnsureUserDataFolder();
+                var json = JsonSerializer.Serialize(data, _options);
+                File.WriteAllText(path, json);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi lưu file {path}: {ex.Message}");
+            }
+        }
+
     }
 }

@@ -7,4 +7,10 @@
         public int OcrInterval { get; set; } = 1000;      // Quét bao lâu 1 lần (ms)
         public string Language { get; set; } = "vie";     // Ngôn ngữ (vie/eng)
     }
+
+    public class LoginConfig
+    {
+        public string Username { get; set; } = "";
+        public string Password { get; set; } = "";
+    }
 }
