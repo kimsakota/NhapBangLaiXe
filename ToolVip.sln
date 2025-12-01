@@ -5,7 +5,7 @@ VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ToolVip", "ToolVip.csproj", "{E3BD5C74-559D-4A76-B7D5-A17E5C6CFE2F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "API Service", "..\..\..\2. FullStack\API Service\API Service\API Service.csproj", "{538AD59C-6384-4A8A-9327-5017F67A2B6D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApi", "..\..\..\2. FullStack\API_Service\TestApi\TestApi.csproj", "{169752AC-1666-47F9-B7AF-60692FA86BEF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +17,10 @@ Global
 		{E3BD5C74-559D-4A76-B7D5-A17E5C6CFE2F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E3BD5C74-559D-4A76-B7D5-A17E5C6CFE2F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E3BD5C74-559D-4A76-B7D5-A17E5C6CFE2F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{538AD59C-6384-4A8A-9327-5017F67A2B6D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{538AD59C-6384-4A8A-9327-5017F67A2B6D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{538AD59C-6384-4A8A-9327-5017F67A2B6D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{538AD59C-6384-4A8A-9327-5017F67A2B6D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{169752AC-1666-47F9-B7AF-60692FA86BEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{169752AC-1666-47F9-B7AF-60692FA86BEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{169752AC-1666-47F9-B7AF-60692FA86BEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{169752AC-1666-47F9-B7AF-60692FA86BEF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

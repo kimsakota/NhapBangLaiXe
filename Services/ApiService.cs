@@ -26,7 +26,8 @@ namespace ToolVip.Services
         private string _authToken = "";
         private string _currentRole = "";
 
-        private const string BASE_URL = "https://service.vst.edu.vn";
+        //private const string BASE_URL = "https://service.vst.edu.vn";
+        private const string BASE_URL = "http://localhost:5000";
 
         public bool IsLoggedIn => !string.IsNullOrEmpty(_authToken);
         public string CurrentRole => _currentRole;
