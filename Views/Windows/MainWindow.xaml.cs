@@ -11,6 +11,9 @@ namespace ToolVip.Views.Windows
     {
         public MainWindowViewModel ViewModel { get; }
 
+        // Property static để các ViewModel khác truy cập
+        public static MainWindow? Instance { get; private set; }
+
         public MainWindow(
             MainWindowViewModel viewModel,
             INavigationViewPageProvider navigationViewPageProvider,
@@ -20,30 +23,12 @@ namespace ToolVip.Views.Windows
         {
             ViewModel = viewModel;
             DataContext = this;
+            Instance = this;
+
             InitializeComponent();
             SetPageService(navigationViewPageProvider);
             navigationService.SetNavigationControl(RootNavigation);
             contentDialogService.SetDialogHost(RootContentDialog);
-        }
-
-        // --- WIN32 API CHO NOACTIVATE ---
-        private const int GWL_EXSTYLE = -20;
-        private const int WS_EX_NOACTIVATE = 0x08000000;
-
-        [DllImport("user32.dll")]
-        private static extern int GetWindowLong(IntPtr hwnd, int index);
-
-        [DllImport("user32.dll")]
-        private static extern int SetWindowLong(IntPtr hwnd, int index, int newStyle);
-
-        protected override void OnSourceInitialized(EventArgs e)
-        {
-            base.OnSourceInitialized(e);
-
-            // Thiết lập cửa sổ thành dạng "Không kích hoạt" (Click xuyên thấu focus)
-            var helper = new WindowInteropHelper(this);
-            int exStyle = GetWindowLong(helper.Handle, GWL_EXSTYLE);
-            SetWindowLong(helper.Handle, GWL_EXSTYLE, exStyle | WS_EX_NOACTIVATE);
         }
 
         #region INavigationWindow methods
@@ -57,6 +42,7 @@ namespace ToolVip.Views.Windows
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
+            Instance = null;
             System.Windows.Application.Current.Shutdown();
         }
 

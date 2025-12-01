@@ -10,6 +10,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
@@ -18,7 +19,15 @@
                       FontWeight="Bold" 
                       Margin="20,10"/>
 
-        <ui:ListView Grid.Row="1" 
+        <ui:TextBox Grid.Row="1" 
+                    Text="{Binding ViewModel.SearchKeyword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                    PlaceholderText="Tìm theo biển số, họ tên, CCCD, SĐT..."
+                    Icon="{ui:SymbolIcon Search24}"
+                    ClearButtonEnabled="True"
+                    Margin="20,5,20,10"
+                    FontSize="14"/>
+
+        <ui:ListView Grid.Row="2" 
                      ItemsSource="{Binding ViewModel.SavedProfiles}" 
                      SelectedItem="{Binding ViewModel.SelectedProfile, Mode=TwoWay}"
                      SelectionMode="Single"
@@ -44,7 +53,7 @@
             </ui:ListView.ItemTemplate>
         </ui:ListView>
 
-        <StackPanel Grid.Row="1" 
+        <StackPanel Grid.Row="2" 
                     Orientation="Horizontal" 
                     VerticalAlignment="Bottom" 
                     HorizontalAlignment="Right"

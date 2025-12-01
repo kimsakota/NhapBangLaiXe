@@ -236,7 +236,7 @@ namespace ToolVip.ViewModels.Pages
         [RelayCommand]
         private async Task PlayAsync()
         {
-            if(!_apiService.IsLoggedIn)
+            if (!_apiService.IsLoggedIn)
             {
                 MessageBox.Show("Bạn chưa đăng nhập API (Tab Nhập).\nVui lòng đăng nhập trước khi chạy Auto.",
                                 "Chưa đăng nhập",
@@ -267,11 +267,9 @@ namespace ToolVip.ViewModels.Pages
 
                 try
                 {
-                    // Vòng lặp chính - Lặp lại cho đến khi bấm Dừng hoặc hết danh sách
                     int currentLoop = 0;
                     while (!token.IsCancellationRequested)
                     {
-                        //  KIỂM TRA MẠNG TRƯỚC KHI CHẠY VÒNG LẶP MỚI ===
                         bool isConnected = await _apiService.CheckConnectionAsync();
                         if (!isConnected)
                         {
@@ -280,10 +278,9 @@ namespace ToolVip.ViewModels.Pages
                                 _autoViewModel.LogText = "!!! MẤT KẾT NỐI MẠNG - DỪNG AUTO !!!";
                                 MessageBox.Show("Đã mất kết nối tới Server/Internet.\nAuto sẽ dừng lại để đảm bảo an toàn.", "Mất mạng", MessageBoxButton.OK, MessageBoxImage.Error);
                             });
-                            break; // Thoát vòng lặp ngay lập tức
+                            break;
                         }
 
-                        // [QUAN TRỌNG] Kiểm tra danh sách có còn không
                         int remainingCount = 0;
                         System.Windows.Application.Current.Dispatcher.Invoke(() => remainingCount = Profiles.Count);
 
@@ -417,7 +414,6 @@ namespace ToolVip.ViewModels.Pages
                                     }
                                 }
 
-                                // [SỬA] Xử lý vùng quét TUẦN TỰ (Sau khi Record chính xong)
                                 foreach (var targetZone in sequentialZones)
                                 {
                                     System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Bắt đầu quét sau chạy: {targetZone.Keyword}...");
@@ -427,31 +423,26 @@ namespace ToolVip.ViewModels.Pages
                                     int w = Math.Abs(targetZone.X1 - targetZone.X2);
                                     int h = Math.Abs(targetZone.Y1 - targetZone.Y2);
 
-                                    // Xác định thời gian quét tối đa
                                     int scanTimeoutSeconds = targetZone.ScanTimeout;
                                     var scanStopwatch = Stopwatch.StartNew();
                                     bool foundInSequential = false;
 
-                                    // Quét liên tục trong khoảng thời gian cho phép
                                     while (true)
                                     {
                                         if (token.IsCancellationRequested) break;
 
-                                        // Kiểm tra Ctrl+S
                                         if ((GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0 && (GetAsyncKeyState(VK_S) & 0x8000) != 0)
                                         {
                                             System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = "Người dùng bấm Ctrl+S");
                                             loopCts.Cancel(); _cts.Cancel(); break;
                                         }
 
-                                        // Kiểm tra hết thời gian quét
                                         if (scanTimeoutSeconds > 0 && scanStopwatch.Elapsed.TotalSeconds > scanTimeoutSeconds)
                                         {
                                             System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"Hết thời gian quét cho '{targetZone.Keyword}' ({scanTimeoutSeconds}s)");
                                             break;
                                         }
 
-                                        // Thực hiện OCR
                                         string scannedText = "";
                                         if (w > 0 && h > 0) scannedText = _ocrService.GetTextFromRegion(x, y, w, h);
 
@@ -468,14 +459,12 @@ namespace ToolVip.ViewModels.Pages
                                                 System.Windows.Application.Current.Dispatcher.Invoke(() => _autoViewModel.LogText = $"=> Chạy Found Action của '{targetZone.Keyword}'...");
                                                 await _recordService.PlayRecordingAsync(targetZone.FoundActions, token);
                                             }
-                                            break; // Tìm thấy rồi thì dừng quét vùng này
+                                            break;
                                         }
 
-                                        // Chưa tìm thấy -> Chờ rồi quét lại
                                         await Task.Delay(200, token);
                                     }
 
-                                    // Nếu hết thời gian quét mà KHÔNG tìm thấy -> Chạy NotFound
                                     if (!foundInSequential && !token.IsCancellationRequested)
                                     {
                                         if (targetZone.NotFoundActions.Count > 0)
@@ -494,7 +483,6 @@ namespace ToolVip.ViewModels.Pages
 
                         }, token);
 
-                        // [MỚI] Kiểm tra có tiếp tục vòng lặp không
                         if (token.IsCancellationRequested)
                         {
                             System.Windows.Application.Current.Dispatcher.Invoke(() =>
@@ -502,11 +490,9 @@ namespace ToolVip.ViewModels.Pages
                             break;
                         }
 
-                        // Delay ngắn giữa các vòng lặp (tùy chọn)
                         await Task.Delay(500, token);
                     }
 
-                    // Thông báo kết thúc tất cả vòng lặp
                     if (!token.IsCancellationRequested)
                     {
                         System.Windows.Application.Current.Dispatcher.Invoke(() =>

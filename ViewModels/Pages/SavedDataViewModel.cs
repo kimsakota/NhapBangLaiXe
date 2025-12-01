@@ -1,5 +1,5 @@
 ﻿using System.Collections.ObjectModel;
-using System.Windows; // Thêm để dùng MessageBox
+using System.Windows;
 using ToolVip.Models;
 using ToolVip.Services;
 using ToolVip.Views.UseControls;
@@ -8,7 +8,7 @@ using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
 using MessageBoxButton = System.Windows.MessageBoxButton;
-using MessageBoxResult = System.Windows.MessageBoxResult; // Định nghĩa rõ MessageBox
+using MessageBoxResult = System.Windows.MessageBoxResult;
 
 namespace ToolVip.ViewModels.Pages
 {
@@ -16,7 +16,10 @@ namespace ToolVip.ViewModels.Pages
     {
         private readonly IContentDialogService _contentDialogService;
         private readonly IDataService _dataService;
-        private readonly IApiService _apiService; // [MỚI] Thêm ApiService
+        private readonly IApiService _apiService;
+
+        // Danh sách gốc (không đổi)
+        private List<DriverProfile> _allProfiles = new();
 
         [ObservableProperty]
         private ObservableCollection<DriverProfile> _savedProfiles = new();
@@ -27,14 +30,17 @@ namespace ToolVip.ViewModels.Pages
         [ObservableProperty]
         private int? _count = 0;
 
-        // [CẬP NHẬT] Thêm tham số apiService vào Constructor
+        // [MỚI] Từ khóa tìm kiếm
+        [ObservableProperty]
+        private string _searchKeyword = "";
+
         public SavedDataViewModel(IDataService dataService,
             IContentDialogService contentDialogService,
             IApiService apiService)
         {
             _dataService = dataService;
             _contentDialogService = contentDialogService;
-            _apiService = apiService; // [MỚI]
+            _apiService = apiService;
 
             LoadData();
         }
@@ -65,21 +71,51 @@ namespace ToolVip.ViewModels.Pages
 
             dialog.Closing += async (s, e) =>
             {
-                if(e.Result == ContentDialogResult.Primary)
+                if (e.Result == ContentDialogResult.Primary)
                     await SyncOneProfileAsync();
-                else 
+                else
                     SelectedProfile = null;
             };
+        }
+
+        // [MỚI] Tự động filter khi SearchKeyword thay đổi
+        partial void OnSearchKeywordChanged(string value)
+        {
+            FilterProfiles();
         }
 
         private void LoadData()
         {
             var data = _dataService.LoadSavedData();
-            SavedProfiles = new ObservableCollection<DriverProfile>(data);
+            _allProfiles = data;
+            FilterProfiles();
+        }
+
+        // [MỚI] Hàm filter danh sách
+        private void FilterProfiles()
+        {
+            if (string.IsNullOrWhiteSpace(SearchKeyword))
+            {
+                // Không có từ khóa -> Hiển thị tất cả
+                SavedProfiles = new ObservableCollection<DriverProfile>(_allProfiles);
+            }
+            else
+            {
+                // Có từ khóa -> Lọc theo Biển số, Họ tên, CCCD, SĐT
+                var keyword = SearchKeyword.Trim().ToLower();
+                var filtered = _allProfiles.Where(p =>
+                    (!string.IsNullOrEmpty(p.LicensePlate) && p.LicensePlate.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrEmpty(p.FullName) && p.FullName.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrEmpty(p.Cccd) && p.Cccd.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrEmpty(p.PhoneNumber) && p.PhoneNumber.ToLower().Contains(keyword))
+                ).ToList();
+
+                SavedProfiles = new ObservableCollection<DriverProfile>(filtered);
+            }
+
             Count = SavedProfiles.Count;
         }
 
-        // [MỚI] Hàm xử lý gửi lại danh sách lên Server
         [RelayCommand]
         private async Task SyncToServerAsync()
         {
@@ -101,7 +137,6 @@ namespace ToolVip.ViewModels.Pages
             int success = 0;
             int fail = 0;
 
-            // Duyệt qua từng hồ sơ và gửi
             foreach (var profile in SavedProfiles)
             {
                 if (!string.IsNullOrEmpty(profile.LicensePlate))
@@ -115,18 +150,15 @@ namespace ToolVip.ViewModels.Pages
             MessageBox.Show($"Đồng bộ hoàn tất:\n- Thành công: {success}\n- Thất bại: {fail}", "Kết quả", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        // [MỚI] Hàm đồng bộ chỉ 1 hồ sơ đang chọn
         [RelayCommand]
         private async Task SyncOneProfileAsync()
         {
-            // 1. Kiểm tra đăng nhập
             if (!_apiService.IsLoggedIn)
             {
                 MessageBox.Show("Bạn chưa đăng nhập API.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            // 2. Kiểm tra có đang chọn dòng nào không
             if (SelectedProfile == null)
             {
                 MessageBox.Show("Vui lòng chọn (click vào) 1 hồ sơ trong danh sách để đồng bộ.", "Chưa chọn hồ sơ", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -139,7 +171,6 @@ namespace ToolVip.ViewModels.Pages
                 return;
             }
 
-            // 3. Gửi lên Server
             bool result = await _apiService.ConfirmImportedAsync(SelectedProfile.LicensePlate);
 
             if (result)
