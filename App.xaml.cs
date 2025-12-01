@@ -63,6 +63,7 @@ namespace ToolVip
                 services.AddSingleton<Views.Pages.AutoPage>();
                 services.AddSingleton<ViewModels.Pages.AutoViewModel>();
                 services.AddSingleton<ConfigDialog>();
+                services.AddSingleton<SavedDetailDialog>();
             }).Build();
 
         public static IServiceProvider Services

@@ -51,30 +51,24 @@ namespace ToolVip.ViewModels.Pages
         {
             if (SelectedProfile == null) return;
 
-            var dialogControl = new ChiTietDialog { DataContext = SelectedProfile };
+            var dialogControl = new SavedDetailDialog { DataContext = SelectedProfile };
             var dialog = new ContentDialog
             {
-                Title = "Chi tiết hồ sơ",
+                Title = $"Đã lưu: {SelectedProfile.LicensePlate}",
                 Content = dialogControl,
-                PrimaryButtonText = "Lưu & Chuyển",
+                PrimaryButtonText = "Đồng bộ Server",
                 CloseButtonText = "Đóng",
                 DefaultButton = ContentDialogButton.Close,
             };
 
             _contentDialogService.ShowAsync(dialog, CancellationToken.None);
 
-            dialog.Closing += (s, e) =>
+            dialog.Closing += async (s, e) =>
             {
-                if (e.Result == ContentDialogResult.Primary)
-                {
-                    _dataService.MoveToSaved(SelectedProfile);
-                    SavedProfiles.Remove(SelectedProfile);
-                    Count--;
-                }
-                else
-                {
+                if(e.Result == ContentDialogResult.Primary)
+                    await SyncOneProfileAsync();
+                else 
                     SelectedProfile = null;
-                }
             };
         }
 
@@ -119,6 +113,43 @@ namespace ToolVip.ViewModels.Pages
             }
 
             MessageBox.Show($"Đồng bộ hoàn tất:\n- Thành công: {success}\n- Thất bại: {fail}", "Kết quả", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        // [MỚI] Hàm đồng bộ chỉ 1 hồ sơ đang chọn
+        [RelayCommand]
+        private async Task SyncOneProfileAsync()
+        {
+            // 1. Kiểm tra đăng nhập
+            if (!_apiService.IsLoggedIn)
+            {
+                MessageBox.Show("Bạn chưa đăng nhập API.", "Cảnh báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            // 2. Kiểm tra có đang chọn dòng nào không
+            if (SelectedProfile == null)
+            {
+                MessageBox.Show("Vui lòng chọn (click vào) 1 hồ sơ trong danh sách để đồng bộ.", "Chưa chọn hồ sơ", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (string.IsNullOrEmpty(SelectedProfile.LicensePlate))
+            {
+                MessageBox.Show("Hồ sơ này bị lỗi: Không có biển số.", "Lỗi");
+                return;
+            }
+
+            // 3. Gửi lên Server
+            bool result = await _apiService.ConfirmImportedAsync(SelectedProfile.LicensePlate);
+
+            if (result)
+            {
+                MessageBox.Show($"Đồng bộ thành công biển số: {SelectedProfile.LicensePlate}", "Thành công");
+            }
+            else
+            {
+                MessageBox.Show($"Đồng bộ THẤT BẠI biển số: {SelectedProfile.LicensePlate}\n(Có thể do lỗi mạng hoặc Token hết hạn)", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }

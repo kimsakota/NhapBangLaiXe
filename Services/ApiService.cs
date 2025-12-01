@@ -1,7 +1,9 @@
 ﻿using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Unicode;
 using ToolVip.Models;
 
 namespace ToolVip.Services
@@ -144,7 +146,19 @@ namespace ToolVip.Services
                     value = new { _id = licensePlate }
                 };
 
-                var response = await _httpClient.PostAsJsonAsync($"/api/{role}/nhap", payload);
+                // [MỚI] Cấu hình để KHÔNG mã hóa ký tự tiếng Việt (Đ, Ê, Ô...)
+                var options = new JsonSerializerOptions
+                {
+                    Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+                    // Hoặc dùng: Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+
+                // [MỚI] Truyền options vào hàm gửi
+                var response = await _httpClient.PostAsJsonAsync($"/api/{role}/nhap", payload, options);
+
+                // [Mẹo Debug] Nếu vẫn lỗi, hãy bỏ comment dòng dưới để xem Server báo lỗi gì
+                // var errorContent = await response.Content.ReadAsStringAsync();
+                // System.Diagnostics.Debug.WriteLine($"Server Error: {errorContent}");
 
                 return response.IsSuccessStatusCode;
             }

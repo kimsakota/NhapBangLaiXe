@@ -1,0 +1,75 @@
+﻿<UserControl x:Class="ToolVip.Views.UseControls.SavedDetailDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:local="clr-namespace:ToolVip.Views.UseControls" 
+             xmlns:models="clr-namespace:ToolVip.Models"
+             d:DataContext="{d:DesignInstance Type=models:DriverProfile}"
+             mc:Ignorable="d" 
+             d:DesignWidth="400">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Border Background="#E8F5E9" CornerRadius="5" Margin="0,0,0,15" Padding="10">
+            <StackPanel HorizontalAlignment="Center">
+                <ui:SymbolIcon Symbol="CheckmarkCircle24" FontSize="32" Foreground="Green" Margin="0,0,0,5"/>
+                <TextBlock Text="THÔNG TIN ĐÃ LƯU" 
+                           FontWeight="Bold" 
+                           FontSize="16"
+                           Foreground="Green"/>
+            </StackPanel>
+        </Border>
+
+        <StackPanel Grid.Row="1">
+            <ui:TextBox Text="{Binding FullName, Mode=OneWay}" 
+                        Icon="{ui:SymbolIcon Person24}" 
+                        IsReadOnly="True" Margin="0,0,0,10"/>
+
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <ui:TextBox Grid.Column="0" Text="{Binding Cccd, Mode=OneWay}" 
+                            Icon="{ui:SymbolIcon Symbol=ContactCard24}" IsReadOnly="True" ToolTip="CCCD"/>
+                <ui:TextBox Grid.Column="2" Text="{Binding IssueDate, Mode=OneWay}" 
+                            Icon="{ui:SymbolIcon CalendarLtr24}" IsReadOnly="True" ToolTip="Ngày cấp"/>
+            </Grid>
+
+            <Grid Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <ui:TextBox Grid.Column="0" Text="{Binding PhoneNumber, Mode=OneWay}" 
+                            Icon="{ui:SymbolIcon Phone24}" IsReadOnly="True" ToolTip="Số điện thoại"/>
+                <ui:TextBox Grid.Column="2" Text="{Binding LicensePlate, Mode=OneWay}" 
+                            Icon="{ui:SymbolIcon VehicleCar24}" IsReadOnly="True" FontWeight="Bold" ToolTip="Biển số"/>
+            </Grid>
+
+            <ui:TextBox Text="{Binding Address, Mode=OneWay}" 
+                        Icon="{ui:SymbolIcon Location24}" 
+                        IsReadOnly="True" Margin="0,0,0,10"/>
+
+            <ui:TextBox Text="{Binding WardCommune, Mode=OneWay}" 
+                        Icon="{ui:SymbolIcon Map24}" 
+                        IsReadOnly="True" Margin="0,0,0,10"/>
+
+            <ui:TextBox Text="{Binding EngineNumber, Mode=OneWay}" 
+                        PlaceholderText="Số máy"
+                        IsReadOnly="True" Margin="0,0,0,10"/>
+
+            <ui:TextBox Text="{Binding ChassisNumber, Mode=OneWay}" 
+                        PlaceholderText="Số khung"
+                        IsReadOnly="True" Margin="0,0,0,10"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
