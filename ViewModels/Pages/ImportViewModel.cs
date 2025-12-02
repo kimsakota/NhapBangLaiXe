@@ -97,7 +97,7 @@ namespace ToolVip.ViewModels.Pages
 
             if (data != null && data.Count > 0)
             {
-                ImportedProfiles.Clear();
+                //ImportedProfiles.Clear();
                 foreach (var item in data)
                 {
                     ImportedProfiles.Add(item);
