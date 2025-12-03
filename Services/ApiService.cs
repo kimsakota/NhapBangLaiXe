@@ -101,7 +101,8 @@ namespace ToolVip.Services
                     {
                         return wrapper.Value.Select(dto => new DriverProfile
                         {
-                            FullName = dto.Name,
+                            FullName = CleanDriverName( dto.Name),
+                            //FullName = dto.Name,
                             Cccd = dto.Cccd,
                             IssueDate = dto.NgayCap,
                             PhoneNumber = dto.SoDT,
@@ -190,6 +191,28 @@ namespace ToolVip.Services
             {
                 return false;
             }
+        }
+
+        private string CleanDriverName(string rawName)
+        {
+            if (string.IsNullOrEmpty(rawName)) return "";
+
+            // 1. Thay thế ký tự Non-breaking space (\u00A0) bằng dấu cách thường
+            string clean = rawName.Replace('\u00A0', ' ');
+
+            // 2. Dùng Regex để xóa toàn bộ số (0-9) -> Loại bỏ năm sinh 1977...
+            // Sử dụng System.Text.RegularExpressions.Regex để không cần khai báo thêm using
+            clean = System.Text.RegularExpressions.Regex.Replace(clean, @"\d+", "");
+
+            // 3. (Tùy chọn) Xóa các ký tự đặc biệt không phải chữ cái (giữ lại tiếng Việt và dấu cách)
+            // Nếu bạn muốn giữ lại dấu gạch ngang hoặc chấm thì bỏ dòng này đi
+            // clean = System.Text.RegularExpressions.Regex.Replace(clean, @"[^\p{L}\s]", "");
+
+            // 4. Cắt khoảng trắng thừa ở đầu/cuối và khoảng trắng kép ở giữa
+            // Ví dụ: "  TRẦN   THÀNH   " -> "TRẦN THÀNH"
+            clean = string.Join(" ", clean.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
+
+            return clean;
         }
     }
 }

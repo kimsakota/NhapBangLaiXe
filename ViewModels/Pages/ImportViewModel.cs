@@ -4,6 +4,7 @@ using ToolVip.Models;
 using ToolVip.Services;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
 
 namespace ToolVip.ViewModels.Pages
 {
@@ -97,15 +98,78 @@ namespace ToolVip.ViewModels.Pages
 
             if (data != null && data.Count > 0)
             {
+                int invalidCount = 0;
+                string errorDetails = "";
+
                 //ImportedProfiles.Clear();
                 foreach (var item in data)
                 {
+                    bool isValid = true;
+                    string reason = "";
+
+                    /*#region CheckTen
+                    if (string.IsNullOrWhiteSpace(item.FullName))
+                    {
+                        isValid = false;
+                        reason += "Tên trống; ";
+                    } else
+                    {
+                        // 1. Kiểm tra Tên chứa số (VD: 1990)
+                        if (System.Text.RegularExpressions.Regex.IsMatch(item.FullName, @"\d+"))
+                        {
+                            isValid = false;
+                            reason += "Tên chứa số; ";
+                        }
+
+                        // 2. Kiểm tra Tên chứa ký tự Non-breaking space (\u00A0)
+                        if (item.FullName.Contains('\u00A0'))
+                        {
+                            isValid = false;
+                            reason += "Tên chứa ký tự lạ (\\u00A0); ";
+                        }
+
+                        // 3. Kiểm tra Tên thừa dấu cách ở đầu hoặc cuối
+                        if (item.FullName.StartsWith(" ") || item.FullName.EndsWith(" "))
+                        {
+                            isValid = false;
+                            reason += "Tên thừa khoảng trắng đầu/cuối; ";
+                        }
+                    }
+                    #endregion CheckTen*/
+
+                    if (string.IsNullOrEmpty(item.Cccd) || item.Cccd.Length != 12 || !item.Cccd.All(char.IsDigit))
+                    {
+                        isValid = false;
+                        reason += $"CCCD sai ({item.Cccd}); ";
+                    }
+
+                    //Kiểm tra số điện thoại có hợp lệ, nếu trống thì tôi đã set mặc định số trong model
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
+                    if (item.PhoneNumber.Length != 10 || !item.PhoneNumber.All(char.IsDigit))
+                    {
+                        isValid = false;
+                        reason += $"SDT sai ({item.PhoneNumber}); ";
+                    }
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
+
+                    if(!isValid)
+                        invalidCount++;
+
+                    if(invalidCount <= 5)
+                        errorDetails += $"- {item.FullName ?? "Không tên"}: {reason}\n";
+
                     ImportedProfiles.Add(item);
                 }
 
                 // [QUAN TRỌNG] Lưu ngay vào Temp sau khi lấy về để tránh mất
                 _dataService.SaveToTemp(ImportedProfiles.ToList());
 
+                if (invalidCount > 0)
+                {
+                    string msg = errorDetails + (invalidCount > 5 ? "... và các hồ sơ khác." : "");
+
+                    MessageBox.Show(msg, "Cảnh báo dữ liệu lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
                 //MessageBox.Show($"Đã lấy được {data.Count} hồ sơ từ Server (Đã lưu Temp).", "Thành công");
             }
             else
